@@ -3,8 +3,6 @@ import { order_queue } from "../queues/order.queue.js";
 const createJob=async(orderId, jobType, payload)=>{
 try {
     const {rows}=await query('INSERT INTO jobs (order_id,job_type,payload) VALUES ($1,$2,$3)  RETURNING *',[orderId, jobType,payload]);
-    payload.orderId=orderId;
-    await order_queue.add(`payment_process`,payload);
     return rows[0];
 } catch (error) {
     console.log(error);

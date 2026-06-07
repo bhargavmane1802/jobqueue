@@ -1,21 +1,23 @@
 import { create_order,getOrderById } from "../models/order.model.js";
-import { createJob,updateJob,getJobByOrderId } from "../models/job.model.js";
+import { paymentQueue } from "../queues/payment.queue.js";
+import {emailQueue} from "../queues/email.queue.js"
+import {inventoryQueue} from "../queues/inventory.queue.js"
+import { createPayment } from "../models/payment.model.js";
 const process_new_order = async (req, res, next) => {
   try {
-    const { product_id, email, amount, quantity } = req.body;
+    const { productId, email, amount, quantity,productName } = req.body;
 
-    if (!product_id || !email || !amount || !quantity) {
+    if (!productId || !email || !amount || !quantity || !productName) {
       return res.status(400).json({
         message: "insufficient information"
       });
     }
-
-    const order = await create_order(product_id,email, quantity, amount);
-    //just for testing purpose 
-
-    const job=await createJob(order.id,"create_order",{email,quantity,amount});
-    // const jobs=await getJobByOrderId(order.id);
-    // console.log(jobs);
+//insert order in db orders table
+    const order = await create_order(productId,email, quantity, amount);
+    await paymentQueue.add('createPayment',{email,amount:amount*quantity,orderId:order.id});//add to paymentqueue
+    await inventoryQueue.add('checkInventory',{productId,quantity});
+    await emailQueue.add('creationEmail',{email,productName,cost:amount*quantity});
+    //order_id,amount in payment    
     return res.status(201).json(order);
   } catch (err) {
     return next(err);

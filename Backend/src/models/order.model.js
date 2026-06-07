@@ -6,7 +6,17 @@ const create_order=async(product_id,email,quantity,amount)=>{
     }
     catch(err){
         console.log(err);
-        return null;
+        throw err;
+    }
+
+}
+const updateOrder=async(orderId,status)=>{
+    try{
+        const {rows}=await query('UPDATE orders SET status=$1,updated_at=NOW() WHERE id=$2 RETURNING *',[status,orderId]);
+        return rows[0];
+    }
+    catch(err){
+        throw err;
     }
 
 }
@@ -22,4 +32,4 @@ const getOrderById=async(order_id)=>{
         return null;
     }
 }
-export {create_order,getOrderById};
+export {create_order,getOrderById,updateOrder};

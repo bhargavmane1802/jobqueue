@@ -4,7 +4,6 @@ import { redis } from "./src/utils/redis.js";
 import { query } from "./src/config/database.js";
 import { order_router } from "./src/routes/order.router.js";
 import { test } from "./src/queues/test.js";
-import "./src/workers/payment.worker.js";
 const port =process.env.PORT;
 app.get("/",async(req,res)=>{
     await test();

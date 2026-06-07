@@ -1,4 +1,8 @@
 import { Pool } from 'pg'
+import { configDotenv } from "dotenv"
+ configDotenv({
+  path: "../../.env"
+});
 const pool = new Pool({
   host:     process.env.DB_HOST,
   port:     process.env.DB_PORT,
