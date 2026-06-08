@@ -1,8 +1,10 @@
+import { TransientError } from "../utils/custom.error.js";
+
 const capturePayment =async (amount,orderId)=>{
-    await new Promise(r => setTimeout(r, 5000)); // simulate network latency
+    await new Promise(r => setTimeout(r, 1000)); // simulate network latency
 
   if (Math.random() < 0.9) {
-    throw new Error('Payment gateway timeout — connection refused');
+    throw new TransientError('Payment gateway timeout');
   }
 
   return {

@@ -3,6 +3,7 @@ import { paymentQueue } from "../queues/payment.queue.js";
 import {emailQueue} from "../queues/email.queue.js"
 import {inventoryQueue} from "../queues/inventory.queue.js"
 import { createPayment } from "../models/payment.model.js";
+import { inventoryCheck } from "../services/inventory.service.js";
 const process_new_order = async (req, res, next) => {
   try {
     const { productId, email, amount, quantity,productName } = req.body;
@@ -12,14 +13,13 @@ const process_new_order = async (req, res, next) => {
         message: "insufficient information"
       });
     }
-//insert order in db orders table
-    const order = await create_order(productId,email, quantity, amount);
-    await paymentQueue.add('createPayment',{email,amount:amount*quantity,orderId:order.id});//add to paymentqueue
-    await inventoryQueue.add('checkInventory',{productId,quantity});
-    await emailQueue.add('creationEmail',{email,productName,cost:amount*quantity});
-    //order_id,amount in payment    
+    const inventory =await inventoryCheck(productId,quantity);
+    const order = await create_order(productId,email, quantity, amount); //insert in order table 
+    console.log(order);
+    await paymentQueue.add('createPayment',{email,productName,amount,quantity,productId,orderId:order.id},{attempts:4,backoff:{ type: 'exponential',delay:2000}});//add to paymentqueue
     return res.status(201).json(order);
   } catch (err) {
+    if(err=='Insufficient stock for product')console.log('Insufficient stock for product');
     return next(err);
   }
 };

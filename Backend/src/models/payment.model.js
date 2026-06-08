@@ -4,7 +4,6 @@ const createPayment =async(order_id,amount,payment_reference)=>{
         const {rows}= await query("INSERT INTO payments (order_id,amount,payment_reference) VALUES ($1,$2,$3) RETURNING *",[order_id,amount,payment_reference]);
         return rows[0];
     } catch (error) {
-        console.log(error);
          throw error;
     }
 }

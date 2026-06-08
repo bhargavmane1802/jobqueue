@@ -4,6 +4,7 @@ import { redis } from "./src/utils/redis.js";
 import { query } from "./src/config/database.js";
 import { order_router } from "./src/routes/order.router.js";
 import { test } from "./src/queues/test.js";
+import { deadQueue } from "./src/queues/dead.queue.js";
 const port =process.env.PORT;
 app.get("/",async(req,res)=>{
     await test();
@@ -18,6 +19,10 @@ app.get('/health/db', async (req, res) => {
     res.status(500).json({ db: 'error', message: err.message });
   }
 });
+app.get('/test',async (req,res,next)=>{
+  const result =await deadQueue.getJobs();
+  return res.status(200).json({result}); 
+})
 app.use((err,req,res,next)=>{
     console.log(err);
     res.status(500).json({message:"check logs"});
