@@ -3,14 +3,18 @@ import { app } from "./src/app.js";
 import { redis } from "./src/utils/redis.js";
 import { query } from "./src/config/database.js";
 import { order_router } from "./src/routes/order.router.js";
+import { userRouter } from "./src/routes/user.router.js";
 import { test } from "./src/queues/test.js";
 import { deadQueue } from "./src/queues/dead.queue.js";
+import { authRouter } from "./src/routes/auth.router.js";
 const port =process.env.PORT;
 app.get("/",async(req,res)=>{
     await test();
     res.status(200).json({message:"listining"});
 })
-app.use("/order",order_router);
+app.use('/user',userRouter);
+app.use('/auth',authRouter)
+app.use("/auth/order",order_router);
 app.get('/health/db', async (req, res) => {
   try {
     await query('SELECT 1');
