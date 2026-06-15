@@ -4,6 +4,7 @@ import {emailQueue} from "../queues/email.queue.js"
 import {inventoryQueue} from "../queues/inventory.queue.js"
 import { createPayment } from "../models/payment.model.js";
 import { inventoryCheck } from "../services/inventory.service.js";
+import { query } from "../config/database.js";
 const process_new_order = async (req, res, next) => {
   try {
     const { productId, email, amount, quantity,productName } = req.body;
@@ -43,4 +44,23 @@ const display_order=async(req,res,next)=>{
       return next(err);
     }
 }
-export{process_new_order,display_order}
+const displayProducts=async(req,res,next)=>{
+    try{
+      const products=await query('select id,title,description,product_images,price from products');
+      return req.status(200).json({products:products});
+
+    }catch(err){
+      next(err);
+    }
+  
+}
+const productDetails=async(req,res,next)=>{
+  try {
+    const {productId}=req.params;
+    const product =await query('select * from products where id=$1',[productId]);
+    return req.status(200).json({product:product});
+  } catch (error) {
+    next(err);
+  }
+}
+export{process_new_order,display_order,displayProducts,productDetails}

@@ -7,6 +7,8 @@ import { userRouter } from "./src/routes/user.router.js";
 import { test } from "./src/queues/test.js";
 import { deadQueue } from "./src/queues/dead.queue.js";
 import { authRouter } from "./src/routes/auth.router.js";
+import { verifyBuyer, verifySeller } from "./src/middleware/role.middleware.js";
+import { sellerRouter } from "./src/routes/seller.router.js";
 const port =process.env.PORT;
 app.get("/",async(req,res)=>{
     await test();
@@ -14,7 +16,11 @@ app.get("/",async(req,res)=>{
 })
 app.use('/user',userRouter);
 app.use('/auth',authRouter)
-app.use("/auth/order",order_router);
+app.use('/auth/sellers');
+app.use('/auth/buyers',verifyBuyer);
+app.use('/auth/seller',verifySeller);
+app.use("/auth/buyers/order",order_router);
+app.use("/auth/seller/",sellerRouter);
 app.get('/health/db', async (req, res) => {
   try {
     await query('SELECT 1');
