@@ -1,8 +1,11 @@
 import { query } from "../config/database.js";
-const create_order=async(product_id,email,quantity,amount)=>{
+const createSingleItem=async(customer_id,productId,quantity)=>{
     try{
-        const {rows}=await query("INSERT INTO orders (product_id,customer_email,quantity,total_amount) VALUES ($1,$2,$3,$4) RETURNING *",[product_id,email,quantity,amount]);
-        return rows[0];
+        const order=await query("INSERT INTO orders (customer_id) VALUES ($1) RETURNING id",[customer_id]);
+        const product=await query("select price from products where id=$1",[productId])
+        const price=(product.rows[0].price)*quantity;
+        const order_item=await query(`Insert into order_items (order_id,product_id,quantity,price) values ($1,$2,$3,$4)`,[order.rows[0].id,productId,quantity,price]);
+        return 
     }
     catch(err){
         console.log(err);
@@ -32,4 +35,4 @@ const getOrderById=async(order_id)=>{
         return null;
     }
 }
-export {create_order,getOrderById,updateOrder};
+export {createSingleItem,getOrderById,updateOrder};

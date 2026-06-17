@@ -1,4 +1,4 @@
-import { create_order,getOrderById } from "../models/order.model.js";
+import { createSingleItem,getOrderById } from "../models/order.model.js";
 import { paymentQueue } from "../queues/payment.queue.js";
 import {emailQueue} from "../queues/email.queue.js"
 import {inventoryQueue} from "../queues/inventory.queue.js"
@@ -7,15 +7,16 @@ import { inventoryCheck } from "../services/inventory.service.js";
 import { query } from "../config/database.js";
 const process_new_order = async (req, res, next) => {
   try {
-    const { productId, email, amount, quantity,productName } = req.body;
-
-    if (!productId || !email || !amount || !quantity || !productName) {
+    const { productId, quantity } = req.body;
+    const {id}=req.user;
+    if (!productId|| !quantity ) {
       return res.status(400).json({
         message: "insufficient information"
       });
     }
+    if(quantity<=0)return res.status(400).json({message:"Quantity should be more than zero"})
     const inventory =await inventoryCheck(productId,quantity);
-    const order = await create_order(productId,email, quantity, amount); //insert in order table 
+    const order = await createSingleItem(id,productId, quantity); //insert in order table 
     // create payment too with status pending 
     console.log(order);
 
