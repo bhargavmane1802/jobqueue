@@ -1,34 +1,69 @@
-import { createSingleItem,getOrderById } from "../models/order.model.js";
+import { createItems, createSingleItem,getOrderById } from "../models/order.model.js";
 import { paymentQueue } from "../queues/payment.queue.js";
 import {emailQueue} from "../queues/email.queue.js"
 import {inventoryQueue} from "../queues/inventory.queue.js"
 import { createPayment } from "../models/payment.model.js";
 import { inventoryCheck } from "../services/inventory.service.js";
 import { query } from "../config/database.js";
-const process_new_order = async (req, res, next) => {
+import Stripe from 'stripe'
+const createOrder = async (req, res, next) => {
   try {
-    const { productId, quantity } = req.body;
-    const {id}=req.user;
-    if (!productId|| !quantity ) {
-      return res.status(400).json({
-        message: "insufficient information"
-      });
-    }
-    if(quantity<=0)return res.status(400).json({message:"Quantity should be more than zero"})
-    const inventory =await inventoryCheck(productId,quantity);
-    const order = await createSingleItem(id,productId, quantity); //insert in order table 
-    // create payment too with status pending 
-    console.log(order);
+    const { products} = req.body;// it is a array of obj {productId,quantity}
+    const {id,email}=req.user;
+    if(products.length==0)return res.status(400).json({message:'Products not found '});
+    const validProducts=products.filter((row)=>(row.quantity>0 && row.productId));
+    await query('begin');
+    const inventory =await inventoryCheck(validProducts);//reserved all the products stock quantity in reserved stock
+    const cost=inventory.reduce((sum,row)=>{
+      return sum+=row.cost;
+    },0);
+    const orderId = await createItems(id,cost,inventory); //insert in order table and order_items
+    const paymentId =await createPayment(orderId,cost); //status pending 
+    const stripe = new Stripe(process.env.STRIPE);
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      customer_email: email,
+
+      line_items: inventory.map(item => ({
+        price_data: {
+          currency: 'inr',
+          product_data: {
+            name: item.name
+          },
+          unit_amount: item.price * 100
+        },
+        quantity: item.quantity
+      })),
+
+      mode: 'payment',
+
+      success_url:
+        `${process.env.CLIENT_URL}/payment/success?session_id={CHECKOUT_SESSION_ID}`,//redirects to order page
+
+      cancel_url:
+        `${process.env.CLIENT_URL}/payment/cancel`, //redirect to order page
+
+      metadata: {
+        orderId: String(orderId),
+        paymentId: String(paymentId),
+        userId: String(id),
+        userEmail:email
+      }
+    });
+
+    await query('commit');
 
     // missing steps are 
     // 1- once order and payment created , server will connect to payment gate way create a session and send it to brwser
     // 2- browser will connect to payment gateway and complete the payment process
-    // 3- redirected to payment successful ,the order status will be verifying payment ;
-    // 4 - the gateway will send webhook whick will trigger paypemt queue to capture the payment and then the rest of the process   
-    await paymentQueue.add('createPayment',{email,productName,amount,quantity,productId,orderId:order.id},{attempts:4,backoff:{ type: 'exponential',delay:2000}});//add to paymentqueue
-    return res.status(201).json(order);
+    return res.status(201).json({
+      orderId,
+      paymentId,
+      checkoutUrl: session.url
+    });
   } catch (err) {
     if(err=='Insufficient stock for product')console.log('Insufficient stock for product');
+    await query("rollback");
     return next(err);
   }
 };

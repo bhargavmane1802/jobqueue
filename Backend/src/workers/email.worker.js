@@ -2,8 +2,9 @@ import { Worker } from "bullmq";
 import { redis } from "../utils/redis.js";
 import { deadQueue } from "../queues/dead.queue.js";
 const emailWorker =new Worker('emailQueue',async (job)=>{
-    const {email,productName,cost,productId,orderId}=job.data;
-    if(job.name=='creationEmail'){
+    const {userEmail,products}=job.data;
+    if(job.name=='orderCreated'){
+        const {userEmail,products}=job.data;
         await new Promise((resolve) => {
             setTimeout(resolve, 20000);
         });
@@ -12,8 +13,8 @@ const emailWorker =new Worker('emailQueue',async (job)=>{
 },{connection:redis})
 
 emailWorker.on('completed' ,(job,result)=>{
-    const {email,productName,cost,productId,orderId}=job.data;
-    console.log(`email:set a email to the customer ${email} ,product name is ${productName} ${orderId}`);
+    const {userEmail,products}=job.data;
+    console.log(`email:set a email to the customer ${userEmail} ,product name is ${products}`);
     console.log(result)
 })
 emailWorker.on('failed',async(job,err)=>{

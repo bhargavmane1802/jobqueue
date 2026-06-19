@@ -1,10 +1,19 @@
 import { query } from "../config/database.js";
-const createPayment =async(order_id,amount,payment_reference)=>{
+const createPayment =async(order_id,amount)=>{
     try {
-        const {rows}= await query("INSERT INTO payments (order_id,amount,payment_reference) VALUES ($1,$2,$3) RETURNING *",[order_id,amount,payment_reference]);
-        return rows[0];
+        const {rows}= await query("INSERT INTO payments (order_id,amount) VALUES ($1,$2) RETURNING id",[order_id,amount]);
+        return rows[0].id;
     } catch (error) {
          throw error;
+    }
+}
+const updatePaymentStatus=(paymentId,status,stripeSessionId,stripePaymentIntentId)=>{
+    try {
+        const {rows}= await ('UPDATE payments SET status=$1,stripeSessionId=$2,stripePaymentIntentId=$3 WHERE id=$4 RETURNING *',[status,stripeSessionId,stripePaymentIntentId,paymentId] );
+        return rows[0];
+    } catch (error) {
+        console.log(error);
+        //error handling remaining
     }
 }
 const updatePayment=async(paymentId,status,error)=>{
@@ -17,4 +26,4 @@ const updatePayment=async(paymentId,status,error)=>{
     }
 
 }
-export {createPayment,updatePayment}
+export {createPayment,updatePayment,updatePaymentStatus}
