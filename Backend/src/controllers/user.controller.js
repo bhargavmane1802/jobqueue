@@ -11,14 +11,17 @@ const register=async(req,res,next)=>{
         if(role!=='seller' && role!='buyer')return res.status(400).json({message:'invalid role information'});
         const {rows}=await query('SELECT id FROM users WHERE username=$1 OR email=$2 ',[username,email]);
         if(rows.length >0)return res.status(409).json({message:'username or mail  already exisits'});
-        const hashedPassword=await bcrypt.hash(password,10)
-        const otp = Math.floor(
-            100000 + Math.random() * 900000
-        ).toString();
-        await redis.set(otp,JSON.stringify({username,email,hashedPassword,role}));
-        await redis.expire(otp, 300);
+        const hashedPassword=await bcrypt.hash(password,10);
+
+        const user= await insertUser(username,hashedPassword,email,role);
+        // const otp = Math.floor(
+        //     100000 + Math.random() * 900000
+        // ).toString();
+        // await redis.set(otp,JSON.stringify({username,email,hashedPassword,role}));
+        // await redis.expire(otp, 300);
         //send a email with otp
         // res.redirect() to otp verification page
+        res.status(200).json({message:"user signup"});
     } catch (error) {
         console.log(error);
         next(error);

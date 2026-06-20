@@ -4,4 +4,4 @@ CREATE TABLE IF NOT EXISTS cart_items (
     quantity INTEGER NOT NULL CHECK (quantity > 0),
 
     PRIMARY KEY (buyer_id, product_id)
-);~
+);

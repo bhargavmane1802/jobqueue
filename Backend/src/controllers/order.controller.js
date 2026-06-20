@@ -1,4 +1,4 @@
-import { createItems, createSingleItem,getOrderById } from "../models/order.model.js";
+import { createItems,getOrderById } from "../models/order.model.js";
 import { paymentQueue } from "../queues/payment.queue.js";
 import {emailQueue} from "../queues/email.queue.js"
 import {inventoryQueue} from "../queues/inventory.queue.js"
@@ -8,14 +8,14 @@ import { query } from "../config/database.js";
 import Stripe from 'stripe'
 const createOrder = async (req, res, next) => {
   try {
-    const { products} = req.body;// it is a array of obj {productId,quantity}
+    let {products} = req.body;// it is a array of obj {productId,quantity}
     const {id,email}=req.user;
     if(products.length==0)return res.status(400).json({message:'Products not found '});
     const validProducts=products.filter((row)=>(row.quantity>0 && row.productId));
     await query('begin');
     const inventory =await inventoryCheck(validProducts);//reserved all the products stock quantity in reserved stock
     const cost=inventory.reduce((sum,row)=>{
-      return sum+=row.cost;
+      return sum+=Number(row.cost);
     },0);
     const orderId = await createItems(id,cost,inventory); //insert in order table and order_items
     const paymentId =await createPayment(orderId,cost); //status pending 
@@ -62,7 +62,8 @@ const createOrder = async (req, res, next) => {
       checkoutUrl: session.url
     });
   } catch (err) {
-    if(err=='Insufficient stock for product')console.log('Insufficient stock for product');
+  
+    console.log(err);
     await query("rollback");
     return next(err);
   }
@@ -70,17 +71,18 @@ const createOrder = async (req, res, next) => {
 const display_order=async(req,res,next)=>{
     try{
       const {order_id}=req.params;
-    const order=await getOrderById(order_id);
-    if(!order){
-      return res.status(400).json({message:"Invalid order id"})
+      const order=await getOrderById(order_id);
+      if(!order){
+        return res.status(400).json({message:"Invalid order id"})
+      }
+      return res.status(200).json({order});
     }
-    return res.status(200).json({order});
-  }
     catch(err){
       return next(err);
     }
 }
 const displayProducts=async(req,res,next)=>{
+  
     try{
       const products=await query('select id,title,description,product_images,price from products');
       return req.status(200).json({products:products});
@@ -99,4 +101,4 @@ const productDetails=async(req,res,next)=>{
     next(err);
   }
 }
-export{process_new_order,display_order,displayProducts,productDetails}
+export{createOrder,display_order,displayProducts,productDetails}

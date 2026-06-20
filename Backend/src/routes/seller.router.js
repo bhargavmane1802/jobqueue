@@ -1,6 +1,7 @@
 import { Router } from "express";
-import { displayProducts, productDetails } from "../controllers/seller.controller";
+import { createProduct, displayProducts, productDetails } from "../controllers/seller.controller.js";
 const sellerRouter=Router();
+sellerRouter.post('/create',createProduct);
 sellerRouter.get('/products',displayProducts);
-sellerRouter.get('/:productId',productDetails)
+sellerRouter.get('/product/:productId',productDetails);
 export {sellerRouter}

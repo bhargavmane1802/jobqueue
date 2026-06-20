@@ -7,18 +7,20 @@ const createPayment =async(order_id,amount)=>{
          throw error;
     }
 }
-const updatePaymentStatus=(paymentId,status,stripeSessionId,stripePaymentIntentId)=>{
+const updatePaymentStatus=async (paymentId,status,stripeSessionId,stripePaymentIntentId)=>{
     try {
-        const {rows}= await ('UPDATE payments SET status=$1,stripeSessionId=$2,stripePaymentIntentId=$3 WHERE id=$4 RETURNING *',[status,stripeSessionId,stripePaymentIntentId,paymentId] );
+        const {rows}= await query('UPDATE payments SET status=$1,stripeSessionId=$2,stripePaymentIntentId=$3 WHERE id=$4 RETURNING *',[status,stripeSessionId,stripePaymentIntentId,paymentId] );
+        if(rows.lenght==0)throw new Error("update staus wrong");
         return rows[0];
     } catch (error) {
-        console.log(error);
+        console.log("updatePaymentStatus",error);
+        throw error;
         //error handling remaining
     }
 }
 const updatePayment=async(paymentId,status,error)=>{
     try {
-        const {rows}= await ('UPDATE payments SET status=$1 error_message=$2 WHERE id=$3 RETURNING *',[status,error,paymentId] );
+        const {rows}= await query('UPDATE payments SET status=$1 error_message=$2 WHERE id=$3 RETURNING *',[status,error,paymentId] );
         return rows[0];
     } catch (error) {
         console.log(error);

@@ -10,6 +10,7 @@ import { authRouter } from "./src/routes/auth.router.js";
 import { verifyBuyer, verifySeller } from "./src/middleware/role.middleware.js";
 import { sellerRouter } from "./src/routes/seller.router.js";
 import { paymentQueue } from "./src/queues/payment.queue.js";
+
 const port =process.env.PORT;
 app.get("/",async(req,res)=>{
     await test();
@@ -17,36 +18,11 @@ app.get("/",async(req,res)=>{
 })
 app.use('/user',userRouter);
 app.use('/auth',authRouter)
-app.use('/auth/sellers');
-app.use('/auth/buyers',verifyBuyer);
+app.use('/auth/buyer',verifyBuyer);
 app.use('/auth/seller',verifySeller);
-app.use("/auth/buyers/order",order_router);
+app.use("/auth/buyer/order",order_router);
 app.use("/auth/seller/",sellerRouter);
-app.post('/stripe/webhook',express.raw({ type: 'application/json' }),async (req, res) => {
 
-    const sig = req.headers['stripe-signature'];
-
-    const event = stripe.webhooks.constructEvent(
-      req.body,
-      sig,
-      process.env.STRIPE_WEBHOOK_SECRET
-    );
-
-    if (event.type === 'checkout.session.completed' ) {
-      const session = event.data.object;
-      session.metadata.stripeSessionId=session.id;
-      session.metadata.stripePaymentIntentId=session.payment_intent;
-      console.log(session.metadata);
-      // mark payment success
-      // mark order confirmed
-    }
-    if(session.payment_status === 'paid'){
-      await paymentQueue.add('paymentSucess',session.metadata);
-    }
-
-    res.sendStatus(200);
-  }
-);
 app.get('/health/db', async (req, res) => {
   try {
     await query('SELECT 1');

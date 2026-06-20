@@ -45,6 +45,7 @@ const updateOrder=async(orderId,status)=>{
     try{
         const {rows}=await query('UPDATE orders SET status=$1,updated_at=NOW() WHERE id=$2 AND status=$3 RETURNING *',[status,orderId,"pending"]);
         if(rows.length==0)return false;
+        console.log("updateOrder success",rows);
         return true;
     }
     catch(err){
@@ -53,7 +54,7 @@ const updateOrder=async(orderId,status)=>{
 
 }
 const getOrderById=async(order_id)=>{
-    try{const {rows}=await query("SELECT * FROM orders WHERE id=$1",[order_id]);
+    try{const {rows}=await query("SELECT o.quantity ,o.price,p.title,p.product_images FROM products p join order_items o on p.id=o.product_id and o.order_id=$1 ",[order_id]);
     if(rows.length==0){
         console.log("Order not found");
         return null;
