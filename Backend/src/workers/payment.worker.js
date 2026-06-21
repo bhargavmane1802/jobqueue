@@ -1,6 +1,5 @@
 import { redis } from "../utils/redis.js";
 import { Worker } from "bullmq";
-import { capturePayment } from "../services/payment.service.js";
 import { createPayment, updatePayment, updatePaymentStatus } from "../models/payment.model.js";
 import { updateOrder } from "../models/order.model.js";
 import { TransientError } from "../utils/custom.error.js";

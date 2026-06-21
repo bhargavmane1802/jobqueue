@@ -1,0 +1,19 @@
+import api from './axios'
+
+// Products
+export const getProducts = () => api.get('/auth/buyer/home/products')
+export const getProductDetail = (productId) => api.get(`/auth/buyer/home/product/${productId}`)
+
+// Cart
+export const getCart = () => api.get('/auth/buyer/cart/getcart')
+export const addToCart = (productId, quantity) =>
+  api.post(`/auth/buyer/cart/addtocart/${productId}`, { productId, quantity })
+export const updateCartItem = (productId, quantity) =>
+  api.patch('/auth/buyer/cart/update/', { productId, quantity })
+export const removeCartItem = (productId) =>
+  api.delete('/auth/buyer/cart/delete/', { data: { productId } })
+export const cartToOrder = () => api.post('/auth/buyer/cart/cartToOrder')
+
+// Orders
+export const getPendingOrders = () => api.get('/auth/buyer/order/pending')
+export const getCompletedOrders = () => api.get('/auth/buyer/order/completed')

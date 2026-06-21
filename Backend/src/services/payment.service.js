@@ -1,5 +1,5 @@
 import Stripe from "stripe";
-export const payment =async(inventory,orderId,userEmail,id)=>{
+export const payment =async(inventory,orderId,email,id)=>{
   try {
     const stripe = new Stripe(process.env.STRIPE);
       const session = await stripe.checkout.sessions.create({
@@ -33,6 +33,6 @@ export const payment =async(inventory,orderId,userEmail,id)=>{
 
   } catch (error) {
     console.log("payment");
-    next (err);
+    throw new Error('payment error');
   }
 }

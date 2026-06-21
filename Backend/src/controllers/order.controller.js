@@ -19,11 +19,11 @@ JOIN order_items i
     ON o.id = i.order_id
 JOIN products p
     ON p.id = i.product_id
-WHERE o.customer_id = $1 and o.status=$3;
+WHERE o.customer_id = $1 and o.status=$2
 GROUP BY o.id, o.total_cost, o.status`,[id,'pending']);
     return res.status(200).json({orderItems:orderItems.rows});
   } catch (error) {
-    console.log('displayOrders');
+    console.log('displaypendingOrders');
     next(error);
   }
 }
@@ -47,11 +47,11 @@ JOIN order_items i
     ON o.id = i.order_id
 JOIN products p
     ON p.id = i.product_id
-WHERE o.customer_id = $1 and o.status=$3;
+WHERE o.customer_id = $1 and o.status=$2
 GROUP BY o.id, o.total_cost, o.status`,[id,'completed']);
     return res.status(200).json({orderItems:orderItems.rows});
   } catch (error) {
-    console.log('displayOrders');
+    console.log('displaycompletedOrders');
     next(error);
   }
 }

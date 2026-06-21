@@ -10,7 +10,7 @@ export const getCartItems=async (req,res,next)=>{
         const {id}=req.user;
         const {rows}=await query(
             'SELECT c.product_id ,c.quantity, p.title, p.product_images, p.price,c.quantity * p.price AS item_total from cart_items c join products p on c.product_id=p.id where buyer_id=$1 ',[id]);
-        const totalCost=rows.reduce((sum,row)=>{return sum+=row.item_total},0);
+        const totalCost=rows.reduce((sum,row)=>{return sum+=Number(row.item_total)},0);
         return res.status(200).json({rows,totalCost});
     } catch (error) {
         console.log("getCartItems");

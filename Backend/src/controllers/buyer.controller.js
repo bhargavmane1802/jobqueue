@@ -4,7 +4,7 @@ export const displayProducts=async(req,res,next)=>{
     try{
       const products=await query('select id,title,description,product_images,price from products');
       if(products.rows.length==0)return res.status(404).json({message:'404 no product found '});
-      return req.status(200).json({products:products.rows});
+      return res.status(200).json({products:products.rows});
     }catch(err){
         console.log("displayProducts")
         next(err);
@@ -22,9 +22,10 @@ export const productDetails=async(req,res,next)=>{
 
     const product =await query('select * from products where id=$1',[productId]);
     if(product.rows.length==0)return res.status(404).json({messsae:'Product Not found'});
-    return req.status(200).json({product:product[rows]});
+    return res.status(200).json({product:product.rows[0]});
   } catch (error) {
-    next(err);
+    console.log("productDetails")
+    next(error);
   }
 }
 export const addToCart=async (req,res,next)=>{

@@ -37,10 +37,10 @@ app.post('/stripe/webhook',express.raw({ type: 'application/json' }),async (req,
       // mark order confirmed
     }
     const session = event.data.object;     
-      session.metadata.orderId=5
-      session.metadata.paymentId=5
-      session.metadata.userId=2
-      session.metadata.userEmail='sakshammane03@gmail.com'
+      session.metadata.orderId=14
+      session.metadata.paymentId=14
+      session.metadata.userId=3
+      session.metadata.userEmail='testuser1@gmail.com'
       session.metadata.stripeSessionId=session.id;
       session.metadata.stripePaymentIntentId=session.payment_intent;
       console.log("metadata:",session.metadata);
