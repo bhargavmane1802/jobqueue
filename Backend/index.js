@@ -10,6 +10,8 @@ import { authRouter } from "./src/routes/auth.router.js";
 import { verifyBuyer, verifySeller } from "./src/middleware/role.middleware.js";
 import { sellerRouter } from "./src/routes/seller.router.js";
 import { paymentQueue } from "./src/queues/payment.queue.js";
+import { cartRouter } from "./src/routes/cart.router.js";
+import { buyerRouter } from "./src/routes/buyer.router.js";
 
 const port =process.env.PORT;
 app.get("/",async(req,res)=>{
@@ -20,7 +22,9 @@ app.use('/user',userRouter);
 app.use('/auth',authRouter)
 app.use('/auth/buyer',verifyBuyer);
 app.use('/auth/seller',verifySeller);
+app.use('/auth/buyer/home',buyerRouter);
 app.use("/auth/buyer/order",order_router);
+app.use('/auth/buyer/cart',cartRouter);
 app.use("/auth/seller/",sellerRouter);
 
 app.get('/health/db', async (req, res) => {

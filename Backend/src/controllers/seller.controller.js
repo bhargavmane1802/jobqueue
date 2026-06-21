@@ -6,6 +6,7 @@ export const displayProducts=async(req,res,next)=>{
         const products=await query('select id,title,description,product_images,price from products where seller_id=$1',[id]);
         return res.status(200).json(products.rows);
     } catch (error) {
+      console.log('displayProducts');
         next(error)
     }
 
@@ -14,8 +15,10 @@ export const productDetails=async(req,res,next)=>{
   try {
     const {productId}=req.params;
     const product =await query('select * from products where id=$1',[productId]);
-    return res.status(200).json({product:product});
+    if(product.rows.lenght==0) throw new Error("product not found");
+    return res.status(200).json({product:product.rows[0]});
   } catch (error) {
+    console.log("productDetails");
     next(error);
   }
 }
@@ -28,7 +31,7 @@ export const createProduct =async(req,res,next)=>{
       product: product.rows[0]
     });
   } catch (error) {
-    console.log(error);
+    console.log("createProduct");
     next(error);
   }
 }

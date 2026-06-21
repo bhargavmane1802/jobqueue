@@ -4,6 +4,7 @@ const createPayment =async(order_id,amount)=>{
         const {rows}= await query("INSERT INTO payments (order_id,amount) VALUES ($1,$2) RETURNING id",[order_id,amount]);
         return rows[0].id;
     } catch (error) {
+        console.log("createPayment")
          throw error;
     }
 }
@@ -23,7 +24,9 @@ const updatePayment=async(paymentId,status,error)=>{
         const {rows}= await query('UPDATE payments SET status=$1 error_message=$2 WHERE id=$3 RETURNING *',[status,error,paymentId] );
         return rows[0];
     } catch (error) {
-        console.log(error);
+
+        console.log("updatePayment");
+        getNextMillis(error);
         //error handling remaining
     }
 
