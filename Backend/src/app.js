@@ -1,10 +1,12 @@
 import express, { urlencoded } from "express"
 import cors from 'cors'
 import helmet from "helmet"
-import { configDotenv } from "dotenv"
+import "dotenv/config";
 import Stripe from "stripe";
 import { paymentQueue } from "./queues/payment.queue.js";
-configDotenv();
+import { query } from "./config/database.js";
+import { inventoryQueue } from "./queues/inventory.queue.js";
+
 const stripe = new Stripe(process.env.STRIPE);
 const app=express();
 app.use(helmet());
@@ -37,24 +39,55 @@ app.post('/stripe/webhook',express.raw({ type: 'application/json' }),async (req,
 
       case 'checkout.session.completed':
         if (session.payment_status === 'paid') {
-          await paymentQueue.add('paymentSucess',session.metadata);
+          await paymentQueue.add(
+            'paymentSuccess',
+            session.metadata,
+            {
+              attempts: 5, // total attempts (1 initial + 4 retries)
+              backoff: {
+                type: 'exponential',
+                delay: 2000, // initial delay: 1 second
+              },
+              removeOnComplete: true,
+              removeOnFail: false,
+            }
+          );
         }
         break;
 
       case 'checkout.session.async_payment_succeeded':
-        await paymentQueue.add('paymentSucess',session.metadata);
+        await paymentQueue.add(
+          'paymentSuccess',
+          session.metadata,
+          {
+            attempts: 5, // total attempts (1 initial + 4 retries)
+            backoff: {
+              type: 'exponential',
+              delay: 2000, // initial delay: 1 second
+            },
+            removeOnComplete: true,
+            removeOnFail: false,
+          }
+        );
         break;
 
       case 'checkout.session.async_payment_failed':
-        // cancel order
-        // release stock
+        case 'checkout.session.expired':
+        const order =await query('update orders set status=$1 where id=$2 and customer_id =$3 and status!=$1 and status!=$4 and status!=$5 returning id' ,['cancelling',session.metadata.orderId,session.metadata.userId,'cancelled','completed']);
+        if(order.rows.length==0)return res.staus(200);
+        await inventoryQueue.add('cancelOrder',{orderId:session.metadata.orderId},{
+              attempts: 5, // total attempts (1 initial + 4 retries)
+              backoff: {
+                type: 'exponential',
+                delay: 2000, // initial delay: 1 second
+              },
+              removeOnComplete: true,
+              removeOnFail: false,
+            });
         break;
 
-      case 'checkout.session.expired':
-        // cancel order
-        // release stock
-        break;
-    }
+
+   }
     res.sendStatus(200);
   }
 );

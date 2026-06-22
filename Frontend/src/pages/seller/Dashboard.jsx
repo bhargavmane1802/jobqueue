@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { PlusCircle, Package, Tag, Eye, TrendingUp } from 'lucide-react'
+import { PlusCircle, Package, Tag, Eye, TrendingUp, Trash2 } from 'lucide-react'
+import toast from 'react-hot-toast'
 import SellerNavbar from '../../components/layout/SellerNavbar'
-import { getSellerProducts } from '../../api/seller.api'
+import { getSellerProducts, deleteProduct } from '../../api/seller.api'
 import { useAuth } from '../../context/AuthContext'
 
 const EMOJIS = ['🖥️', '📱', '👟', '📷', '🎮', '⌚', '🎧', '💼']
@@ -10,8 +11,23 @@ const EMOJIS = ['🖥️', '📱', '👟', '📷', '🎮', '⌚', '🎧', '💼'
 export default function SellerDashboard() {
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
+  const [deletingId, setDeletingId] = useState(null)
   const navigate = useNavigate()
   const { user } = useAuth()
+
+  const handleDelete = async (productId, title) => {
+    if (!window.confirm(`Delete "${title}"? This cannot be undone.`)) return
+    setDeletingId(productId)
+    try {
+      await deleteProduct(productId)
+      setProducts(prev => prev.filter(p => p.id !== productId))
+      toast.success('Product deleted')
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Delete failed')
+    } finally {
+      setDeletingId(null)
+    }
+  }
 
   useEffect(() => {
     const fetch = async () => {
@@ -126,7 +142,7 @@ export default function SellerDashboard() {
               <div>
                 {/* Table header */}
                 <div style={{
-                  display: 'grid', gridTemplateColumns: '48px 1fr 120px 100px 100px 80px',
+                  display: 'grid', gridTemplateColumns: '48px 1fr 120px 100px 100px 140px',
                   gap: '16px', padding: '12px 24px',
                   fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)',
                   textTransform: 'uppercase', letterSpacing: '0.06em',
@@ -137,7 +153,7 @@ export default function SellerDashboard() {
                   <div>Price</div>
                   <div>Stock</div>
                   <div>Reserved</div>
-                  <div>Action</div>
+                  <div>Actions</div>
                 </div>
 
                 {products.map((p, idx) => {
@@ -147,7 +163,7 @@ export default function SellerDashboard() {
                       key={p.id}
                       style={{
                         display: 'grid',
-                        gridTemplateColumns: '48px 1fr 120px 100px 100px 80px',
+                        gridTemplateColumns: '48px 1fr 120px 100px 100px 140px',
                         gap: '16px', padding: '16px 24px',
                         alignItems: 'center',
                         borderBottom: idx < products.length - 1 ? '1px solid var(--border)' : 'none',
@@ -190,7 +206,7 @@ export default function SellerDashboard() {
                       <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
                         {p.reserved_quantity || 0}
                       </div>
-                      <div>
+                      <div style={{ display: 'flex', gap: '6px' }}>
                         <button
                           className="btn btn-secondary btn-sm"
                           onClick={() => navigate(`/seller/product/${p.id}`)}
@@ -198,6 +214,17 @@ export default function SellerDashboard() {
                         >
                           <Eye size={12} />
                           View
+                        </button>
+                        <button
+                          className="btn btn-danger btn-sm"
+                          onClick={() => handleDelete(p.id, p.title)}
+                          disabled={deletingId === p.id}
+                          id={`delete-product-${p.id}`}
+                        >
+                          {deletingId === p.id
+                            ? <span style={{ width: 10, height: 10, border: '1.5px solid rgba(239,68,68,0.3)', borderTopColor: 'var(--danger)', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.6s linear infinite' }} />
+                            : <Trash2 size={12} />
+                          }
                         </button>
                       </div>
                     </div>
@@ -211,3 +238,4 @@ export default function SellerDashboard() {
     </div>
   )
 }
+

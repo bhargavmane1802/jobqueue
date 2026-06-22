@@ -398,6 +398,18 @@ input, textarea, select {
   border: 1px solid rgba(239, 68, 68, 0.2);
 }
 
+.badge-cancelling {
+  background: rgba(245, 158, 11, 0.08);
+  color: #fb923c;
+  border: 1px solid rgba(251, 146, 60, 0.2);
+}
+
+.badge-cancelled {
+  background: rgba(100, 100, 120, 0.12);
+  color: var(--text-muted);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
 /* ---------- Skeleton Loader ---------- */
 @keyframes shimmer {
   0%   { background-position: -800px 0; }

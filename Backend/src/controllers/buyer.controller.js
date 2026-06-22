@@ -102,6 +102,7 @@ export const buySingleItem=async(req,res,next)=>{
         const order_items=await query('insert into order_items (order_id,product_id,quantity,price) values ($1,$2,$3,$4)',[order.rows[0].id,productId,quantity,inventory.rows[0].price]);
         const paymentId =await createPayment(order.rows[0].id,cost);
         await query('commit');
+        transactionStarted = false;
         const url=await payment(inventory.rows,order.rows[0].id,email,id);
         await query(
         `

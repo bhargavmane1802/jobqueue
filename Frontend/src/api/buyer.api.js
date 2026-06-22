@@ -19,3 +19,4 @@ export const buySingleProduct = (productId, quantity) =>
 // Orders
 export const getPendingOrders = () => api.get('/auth/buyer/order/pending')
 export const getCompletedOrders = () => api.get('/auth/buyer/order/completed')
+export const cancelOrder = (orderId) => api.delete(`/auth/buyer/order/${orderId}/cancel`)

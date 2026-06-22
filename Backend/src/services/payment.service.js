@@ -17,7 +17,7 @@ export const payment =async(inventory,orderId,email,id)=>{
   
         mode: 'payment',
   
-        expires_at: Math.floor(Date.now() / 1000) + (5 * 60),
+        expires_at: Math.floor(Date.now() / 1000) + (60 * 60),
 
         success_url:
           `${process.env.CLIENT_URL}/payment/success?session_id={CHECKOUT_SESSION_ID}`,//redirects to order page
@@ -34,7 +34,7 @@ export const payment =async(inventory,orderId,email,id)=>{
       return session.url;
 
   } catch (error) {
-    console.log("payment");
+    console.log("payment",error);
     throw new Error('payment error');
   }
 }
