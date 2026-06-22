@@ -12,7 +12,6 @@ const payment_worker=new Worker("paymentQueue",async(job)=>{
     if(job.name=='paymentSucess'){
         const {orderId ,paymentId,userId,stripeSessionId,stripePaymentIntentId}=job.data;
         if(!orderId || !paymentId ||!userId || !stripeSessionId|| !stripePaymentIntentId) throw new Error(`Missing data`);
-        console.log("job: ",orderId ,paymentId,userId,stripeSessionId,stripePaymentIntentId);
         const result =await updateOrder(orderId,"paid");
         if(!result)return {message:false};
         await updatePaymentStatus(paymentId,"successful",stripeSessionId,stripePaymentIntentId);
@@ -26,7 +25,7 @@ payment_worker.on("completed",async(job,result)=>{
 payment_worker.on("failed",async(job,err)=>{
     if(err=="Missing data"){console.log("data missing ");return ;}
     console.log(
-      `attempt ${job.attemptsMade} of ${job.opts.attempts} failed`
+      `attempt ${job.attemptsMade} of ${job.opts.attempts} failed`,err
     );
     if (job.attemptsMade >= job.opts.attempts){
         // const res=await updateOrder(job.data.orderId,"paymentFailed",err);

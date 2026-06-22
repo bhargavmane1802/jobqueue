@@ -13,6 +13,8 @@ export const updateCartItem = (productId, quantity) =>
 export const removeCartItem = (productId) =>
   api.delete('/auth/buyer/cart/delete/', { data: { productId } })
 export const cartToOrder = () => api.post('/auth/buyer/cart/cartToOrder')
+export const buySingleProduct = (productId, quantity) =>
+  api.post('/auth/buyer/home/buyProduct', { productId, quantity })
 
 // Orders
 export const getPendingOrders = () => api.get('/auth/buyer/order/pending')

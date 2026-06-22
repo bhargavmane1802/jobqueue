@@ -3,7 +3,7 @@ export const payment =async(inventory,orderId,email,id)=>{
   try {
     const stripe = new Stripe(process.env.STRIPE);
       const session = await stripe.checkout.sessions.create({
-        payment_method_types: ['card'],
+        payment_method_types: ['card','upi'],
         line_items: inventory.map(item => ({
           price_data: {
             currency: 'inr',
@@ -17,12 +17,14 @@ export const payment =async(inventory,orderId,email,id)=>{
   
         mode: 'payment',
   
+        expires_at: Math.floor(Date.now() / 1000) + (5 * 60),
+
         success_url:
           `${process.env.CLIENT_URL}/payment/success?session_id={CHECKOUT_SESSION_ID}`,//redirects to order page
   
         cancel_url:
           `${process.env.CLIENT_URL}/payment/cancel`, //redirect to order page
-  
+        
         metadata: {
           orderId: String(orderId),
           userId: String(id),

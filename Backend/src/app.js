@@ -24,26 +24,14 @@ app.post('/stripe/webhook',express.raw({ type: 'application/json' }),async (req,
       return res.status(400).send(`Webhook Error: ${err.message}`);
     }
 
-
-    if (event.type === 'checkout.session.completed' ) {
-      const session = event.data.object;
-      session.metadata.stripeSessionId=session.id;
-      session.metadata.stripePaymentIntentId=session.payment_intent;
-      console.log(session.metadata);
-      if(session.payment_status === 'paid'){
-        await paymentQueue.add('paymentSucess',session.metadata);
-      }
-      // mark payment success
-      // mark order confirmed
-    }
     const session = event.data.object;     
-      session.metadata.orderId=14
-      session.metadata.paymentId=14
-      session.metadata.userId=3
+      session.metadata.orderId=6
+      session.metadata.paymentId=6
+      session.metadata.userId=2
       session.metadata.userEmail='testuser1@gmail.com'
       session.metadata.stripeSessionId=session.id;
       session.metadata.stripePaymentIntentId=session.payment_intent;
-      console.log("metadata:",session.metadata);
+      console.log(event.type);
 
     switch (event.type) {
 
