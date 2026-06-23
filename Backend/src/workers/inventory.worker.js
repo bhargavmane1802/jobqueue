@@ -12,9 +12,7 @@ const inventoryWorker= new Worker('inventoryQueue',async(job)=>{
    return true;}
    if (job.name === 'cancelOrder') {
       const { orderId } = job.data;
-
       await query('BEGIN');
-
       try {
          const result = await query(
             `
@@ -57,10 +55,7 @@ inventoryWorker.on("completed" ,(job,result)=>{
    console.log("inventory updated :",result);
 })
 inventoryWorker.on("failed",async(job, err)=>{
-   console.log(
-      `attempt ${job.attemptsMade} of ${job.opts.attempts} failed`,err
-    );
-   console.log("inventory failed",err);
+   console.log(`attempt ${job.attemptsMade} of ${job.opts.attempts} failed`,err);
    if(job.attemptsMade==job.opts.attempts)await deadQueue.add('failedInventoryUpdate',{name:job.name,data:job.data});
 })
 

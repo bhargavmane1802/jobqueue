@@ -1,5 +1,7 @@
 import { query } from "../config/database.js";
 import { inventoryQueue } from "../queues/inventory.queue.js";
+import { paymentQueue } from "../queues/payment.queue.js";
+import { shipmentQueue } from "../queues/shipment.queue.js";
 
 const displaypendingOrders=async(req,res,next)=>{
   try {
@@ -20,8 +22,8 @@ JOIN order_items i
     ON o.id = i.order_id
 JOIN products p
     ON p.id = i.product_id
-WHERE o.customer_id = $1 and o.status=$2
-GROUP BY o.id, o.total_cost, o.status`,[id,'pending']);
+WHERE o.customer_id = $1 
+GROUP BY o.id, o.total_cost`,[id]);
     return res.status(200).json({orderItems:orderItems.rows});
   } catch (error) {
     console.log('displaypendingOrders');
@@ -62,13 +64,41 @@ const cancelOrder=async(req,res,next)=>{
         const {orderId}=req.params;
         const {id}=req.user;
         if(!orderId)return res.status(400).json({message:'insufficient information '});
-        const order =await query('update orders set status=$1 where id=$2 and customer_id =$3 and status!=$1 and status!=$4 and status!=$5 returning id' ,['cancelling',orderId,id,'cancelled','completed']);
-        if(order.rows.length==0)return res.staus(404).json({message:'Invalid request'});
+        const order =await query(`UPDATE orders o
+            SET status = $1
+            FROM payments p
+            WHERE o.id = $2
+            AND o.customer_id = $3
+            AND o.status = $4
+            AND p.order_id = o.id
+            AND p.status = $5
+            RETURNING p.id AS payment_id;` ,
+            ['cancelling',orderId,id,'shipment','paid']
+        );
+        if(order.rows.length==0)return res.status(404).json({message:'Invalid request  q'});
+        await paymentQueue.add('refundPayment',{paymentId:order.rows[0].payment_id ,id},{
+              attempts: 5, // total attempts (1 initial + 4 retries)
+              backoff: {
+                type: 'exponential',
+                delay: 2000, 
+              },
+              removeOnComplete: true,
+              removeOnFail: false,
+            });
         await inventoryQueue.add('cancelOrder',{orderId},{
               attempts: 5, // total attempts (1 initial + 4 retries)
               backoff: {
                 type: 'exponential',
-                delay: 2000, // initial delay: 1 second
+                delay: 2000, 
+              },
+              removeOnComplete: true,
+              removeOnFail: false,
+            });
+         await shipmentQueue.add('cancelShipment',{orderId},{
+              attempts: 5, // total attempts (1 initial + 4 retries)
+              backoff: {
+                type: 'exponential',
+                delay: 2000, 
               },
               removeOnComplete: true,
               removeOnFail: false,
@@ -79,5 +109,46 @@ const cancelOrder=async(req,res,next)=>{
         next(error);
     }
 }
-
+// const cancelOrder=async(req,res,next)=>{
+//     try {
+//         const {orderId}=req.params;
+//         const {id}=req.user;
+//         if(!orderId)return res.status(400).json({message:'insufficient information '});
+// const order = await query(
+//         `SELECT
+//             p.status AS payment_status,
+//             o.status AS order_status,
+//             p.id AS payment_id
+//         FROM payments p
+//         JOIN orders o
+//             ON p.order_id = o.id
+//             WHERE o.id = $1
+//             AND o.customer_id = $2`,
+//         [orderId, id]
+//     );   
+//     if(order.rows.length==0)return res.staus(404).json({message:'Invalid request'});
+//         console.log(order.rows[0]);
+//     const data=order.rows[0];
+//     if(data.payment_status=='pending' && data.order_status=='payment')return res.staus(404).json({message:'Invalid request'});
+//     else if(data.payment_status=='paid' ){
+//         if(data.order_status=='payment'){}
+//         else if(data.order_status=='shipment'){
+            
+//         }
+//     }
+//         // await inventoryQueue.add('cancelOrder',{orderId},{
+//         //       attempts: 5, // total attempts (1 initial + 4 retries)
+//         //       backoff: {
+//         //         type: 'exponential',
+//         //         delay: 2000, // initial delay: 1 second
+//         //       },
+//         //       removeOnComplete: true,
+//         //       removeOnFail: false,
+//         //     });
+//         return res.status(200).json({message:'Order cancelled'});
+//     } catch (error) {
+//         console.log('cancleOrder');
+//         next(error);
+//     }
+// }
 export{displaypendingOrders,displaycompletedOrders,cancelOrder}

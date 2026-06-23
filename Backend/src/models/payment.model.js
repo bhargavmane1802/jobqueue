@@ -10,7 +10,7 @@ const createPayment =async(order_id,amount)=>{
 }
 const updatePaymentStatus=async (paymentId,status,stripeSessionId,stripePaymentIntentId)=>{
     try {
-        const {rows}= await query('UPDATE payments SET status=$1,stripeSessionId=$2,stripePaymentIntentId=$3 WHERE id=$4 RETURNING *',[status,stripeSessionId,stripePaymentIntentId,paymentId] );
+        const {rows}= await query('UPDATE payments SET status=$1,stripeSessionId=$2,stripePaymentIntentId=$3 WHERE id=$4 RETURNING id',['paid',stripeSessionId,stripePaymentIntentId,paymentId] );
         if(rows.lenght==0)throw new Error("update staus wrong");
         return rows[0];
     } catch (error) {

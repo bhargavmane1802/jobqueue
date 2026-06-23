@@ -7,31 +7,61 @@ import { inventoryQueue } from "../queues/inventory.queue.js";
 import { emailQueue } from "../queues/email.queue.js";
 import { revertInventory } from "../services/inventory.service.js";
 import { deadQueue } from "../queues/dead.queue.js";
+import { query } from "../config/database.js";
+import { shipmentQueue } from "../queues/shipment.queue.js";
 const payment_worker=new Worker("paymentQueue",async(job)=>{
-    console.log("payment worker working");
-    if(job.name=='paymentSucess'){
+    console.log(job.name);
+    if(job.name=='paymentSuccess'){
         const {orderId ,paymentId,userId,stripeSessionId,stripePaymentIntentId}=job.data;
         if(!orderId || !paymentId ||!userId || !stripeSessionId|| !stripePaymentIntentId) throw new Error(`Missing data`);
-        const result =await updateOrder(orderId,"paid");
-        if(!result)return {message:false};
-        await updatePaymentStatus(paymentId,"successful",stripeSessionId,stripePaymentIntentId);
+        await updatePaymentStatus(paymentId,"paid",stripeSessionId,stripePaymentIntentId);
         return {message:true};
     }
-},{connection:redis}) 
+    if(job.name=='refundPayment'){
+        const {paymentId,id}=job.data;
+        if(!paymentId || !id) throw new Error('MissingData');
+        try{await query('begin');
+        const payment= await query('update payments set status=$1 where id=$2 and status!=$1 returning id',['refunded',paymentId]);
+        if(payment.rows.length==0){await query('commit'); return {success:'duplicate'};};
+        //refund function remaining;
+        console.log('refund successful');
+        await query('commit');}
+        catch(err){
+            await query('rollback');
+            throw err;
+        }
+        return {success:"updated payment status"};
+    }
+},{connection:redis});
+
+
+
+
 payment_worker.on("completed",async(job,result)=>{
-    const {orderId ,userEmail}=job.data;
-    if (result.message)await inventoryQueue.add('updateInventory',{orderId,userEmail});//adds to inventory queue
-})
+    if(job.name=='paymentSuccess'){
+        const {orderId ,userEmail}=job.data;
+        if (result.message){
+            await inventoryQueue.add('updateInventory',{orderId,userEmail});
+            await shipmentQueue.add('createShipment',{orderId});
+        }
+        console.log('added to inventory and shipment queue')
+
+    }//adds to inventory queue
+    if(job.name=='refundPayment'){
+        console.log('refund job queue worked');
+    }
+});
+
+
+
 payment_worker.on("failed",async(job,err)=>{
-    if(err=="Missing data"){console.log("data missing ");return ;}
+    if(err.message =="Missing data"){console.log("data missing ");return ;}
     console.log(
       `attempt ${job.attemptsMade} of ${job.opts.attempts} failed`,err
     );
     if (job.attemptsMade >= job.opts.attempts){
-        // const res=await updateOrder(job.data.orderId,"paymentFailed",err);
-        // const inventory=await revertInventory(job.data.productId,job.data.quantity);
-        // await deadQueue.add('paymentFaliure',job.data);
-        // console.log("order status is failed , due to payment faliuer",res,inventory);
+        await deadQueue.add(job.name,job.data);
+        console.log(`payment is failed ,${job.name}`);
     }
 
 })

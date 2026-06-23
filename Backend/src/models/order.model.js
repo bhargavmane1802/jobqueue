@@ -2,10 +2,10 @@ import { query } from "../config/database.js";
 const createItems = async (customerId, cost, inventory) => {
   try {
     const orderResult = await query(
-      `INSERT INTO orders (customer_id, total_cost)
-       VALUES ($1, $2)
+      `INSERT INTO orders (customer_id, total_cost,status)
+       VALUES ($1, $2,$3)
        RETURNING id`,
-      [customerId, cost]
+      [customerId, cost,'payment']
     );
 
     const orderId = orderResult.rows[0].id;
@@ -43,8 +43,8 @@ const createItems = async (customerId, cost, inventory) => {
 };
 const updateOrder=async(orderId,status)=>{
     try{
-        const {rows}=await query('UPDATE orders SET status=$1,updated_at=NOW() WHERE id=$2 AND status=$3 RETURNING *',[status,orderId,"pending"]);
-        if(rows.length==0)return false;
+        const {rows}=await query('UPDATE orders SET status=$1,updated_at=NOW() WHERE id=$2 AND status=$3 RETURNING *',[status,orderId,"payment"]);
+        if(rows.length==0){console.log('updateOrder failed');return false;}
         console.log("updateOrder success",rows);
         return true;
     }

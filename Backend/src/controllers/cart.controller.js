@@ -109,38 +109,6 @@ export const createOrder = async (req, res, next) => {
     },0);
     const orderId = await createItems(id,cost,inventory); //insert in order table and order_items
     const paymentId =await createPayment(orderId,cost);
-   //this isnt feasible to hold the db in this state // add a column to the sttore the url of payment . 
-    // const stripe = new Stripe(process.env.STRIPE);
-    // const session = await stripe.checkout.sessions.create({
-    //   payment_method_types: ['card'],
-    //   customer_email: email,
-
-    //   line_items: inventory.map(item => ({
-    //     price_data: {
-    //       currency: 'inr',
-    //       product_data: {
-    //         name: item.name
-    //       },
-    //       unit_amount: item.price * 100
-    //     },
-    //     quantity: item.quantity
-    //   })),
-
-    //   mode: 'payment',
-
-    //   success_url:
-    //     `${process.env.CLIENT_URL}/payment/success?session_id={CHECKOUT_SESSION_ID}`,//redirects to order page
-
-    //   cancel_url:
-    //     `${process.env.CLIENT_URL}/payment/cancel`, //redirect to order page
-
-    //   metadata: {
-    //     orderId: String(orderId),
-    //     paymentId: String(paymentId),
-    //     userId: String(id),
-    //     userEmail:String(email)
-    //   }
-    // });
     await query('commit');
     const url =await payment(inventory,orderId,email,id);
     await query(
