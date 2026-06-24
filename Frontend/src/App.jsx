@@ -7,7 +7,7 @@ import Landing from './pages/Landing'
 import Login from './pages/auth/Login'
 import Register from './pages/auth/Register'
 
-// Payment
+// Payment callbacks
 import PaymentSuccess from './pages/payment/Success'
 import PaymentCancel from './pages/payment/Cancel'
 
@@ -15,8 +15,7 @@ import PaymentCancel from './pages/payment/Cancel'
 import ProductListing from './pages/buyer/ProductListing'
 import ProductDetail from './pages/buyer/ProductDetail'
 import Cart from './pages/buyer/Cart'
-import PendingOrders from './pages/buyer/PendingOrders'
-import CompletedOrders from './pages/buyer/CompletedOrders'
+import AllOrders from './pages/buyer/AllOrders'
 
 // Seller
 import SellerDashboard from './pages/seller/Dashboard'
@@ -32,11 +31,11 @@ export default function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
 
-        {/* Payment callbacks (no auth needed — Stripe redirects here) */}
+        {/* Stripe redirect callbacks — no auth required */}
         <Route path="/payment/success" element={<PaymentSuccess />} />
-        <Route path="/payment/cancel" element={<PaymentCancel />} />
+        <Route path="/payment/cancel"  element={<PaymentCancel />} />
 
-        {/* Buyer routes */}
+        {/* Buyer */}
         <Route path="/buyer/home" element={
           <ProtectedRoute role="buyer"><ProductListing /></ProtectedRoute>
         } />
@@ -46,14 +45,16 @@ export default function App() {
         <Route path="/buyer/cart" element={
           <ProtectedRoute role="buyer"><Cart /></ProtectedRoute>
         } />
-        <Route path="/buyer/orders/pending" element={
-          <ProtectedRoute role="buyer"><PendingOrders /></ProtectedRoute>
-        } />
-        <Route path="/buyer/orders/completed" element={
-          <ProtectedRoute role="buyer"><CompletedOrders /></ProtectedRoute>
-        } />
 
-        {/* Seller routes */}
+        {/* Consolidated orders page (replaces /orders/pending + /orders/completed) */}
+        <Route path="/buyer/orders" element={
+          <ProtectedRoute role="buyer"><AllOrders /></ProtectedRoute>
+        } />
+        {/* Legacy redirects so old links still work */}
+        <Route path="/buyer/orders/pending"   element={<Navigate to="/buyer/orders" replace />} />
+        <Route path="/buyer/orders/completed" element={<Navigate to="/buyer/orders" replace />} />
+
+        {/* Seller */}
         <Route path="/seller/dashboard" element={
           <ProtectedRoute role="seller"><SellerDashboard /></ProtectedRoute>
         } />

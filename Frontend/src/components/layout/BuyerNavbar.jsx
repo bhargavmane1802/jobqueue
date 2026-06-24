@@ -1,5 +1,5 @@
 import { Link, NavLink, useNavigate } from 'react-router-dom'
-import { ShoppingCart, Package, CheckCircle, LogOut, Home } from 'lucide-react'
+import { ShoppingCart, Package, LogOut, Home } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import toast from 'react-hot-toast'
 
@@ -21,11 +21,18 @@ export default function BuyerNavbar({ cartCount = 0 }) {
         </Link>
 
         <div className="navbar-links">
-          <NavLink to="/buyer/home" className={({ isActive }) => `navbar-link ${isActive ? 'active' : ''}`}>
+          <NavLink
+            to="/buyer/home"
+            className={({ isActive }) => `navbar-link ${isActive ? 'active' : ''}`}
+          >
             <Home size={15} />
             Shop
           </NavLink>
-          <NavLink to="/buyer/cart" className={({ isActive }) => `navbar-link ${isActive ? 'active' : ''}`}>
+
+          <NavLink
+            to="/buyer/cart"
+            className={({ isActive }) => `navbar-link ${isActive ? 'active' : ''}`}
+          >
             <ShoppingCart size={15} />
             Cart
             {cartCount > 0 && (
@@ -42,13 +49,15 @@ export default function BuyerNavbar({ cartCount = 0 }) {
               </span>
             )}
           </NavLink>
-          <NavLink to="/buyer/orders/pending" className={({ isActive }) => `navbar-link ${isActive ? 'active' : ''}`}>
+
+          {/* Single consolidated Orders link */}
+          <NavLink
+            to="/buyer/orders"
+            className={({ isActive }) => `navbar-link ${isActive ? 'active' : ''}`}
+            id="nav-orders"
+          >
             <Package size={15} />
-            Orders
-          </NavLink>
-          <NavLink to="/buyer/orders/completed" className={({ isActive }) => `navbar-link ${isActive ? 'active' : ''}`}>
-            <CheckCircle size={15} />
-            Completed
+            My Orders
           </NavLink>
         </div>
 
@@ -56,7 +65,11 @@ export default function BuyerNavbar({ cartCount = 0 }) {
           <div className="navbar-avatar" title={user?.username}>
             {user?.username?.[0]?.toUpperCase() || 'U'}
           </div>
-          <button className="btn btn-ghost btn-sm" onClick={handleLogout} id="buyer-logout-btn">
+          <button
+            className="btn btn-ghost btn-sm"
+            onClick={handleLogout}
+            id="buyer-logout-btn"
+          >
             <LogOut size={14} />
             Logout
           </button>

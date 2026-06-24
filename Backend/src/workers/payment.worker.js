@@ -41,8 +41,24 @@ payment_worker.on("completed",async(job,result)=>{
     if(job.name=='paymentSuccess'){
         const {orderId ,userEmail}=job.data;
         if (result.message){
-            await inventoryQueue.add('updateInventory',{orderId,userEmail});
-            await shipmentQueue.add('createShipment',{orderId});
+            await inventoryQueue.add('updateInventory',{orderId,userEmail},{
+              attempts: 5, // total attempts (1 initial + 4 retries)
+              backoff: {
+                type: 'exponential',
+                delay: 2000, // initial delay: 1 second
+              },
+              removeOnComplete: true,
+              removeOnFail: false,
+            });
+            await shipmentQueue.add('createShipment',{orderId},{
+              attempts: 5, // total attempts (1 initial + 4 retries)
+              backoff: {
+                type: 'exponential',
+                delay: 2000, // initial delay: 1 second
+              },
+              removeOnComplete: true,
+              removeOnFail: false,
+            });
         }
         console.log('added to inventory and shipment queue')
 

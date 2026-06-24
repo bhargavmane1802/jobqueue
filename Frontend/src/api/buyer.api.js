@@ -17,6 +17,6 @@ export const buySingleProduct = (productId, quantity) =>
   api.post('/auth/buyer/home/buyProduct', { productId, quantity })
 
 // Orders
-export const getPendingOrders = () => api.get('/auth/buyer/order/pending')
-export const getCompletedOrders = () => api.get('/auth/buyer/order/completed')
+export const getAllOrders = () => api.get('/auth/buyer/order/all')
+export const retryPayment = (orderId) => api.post(`/auth/buyer/order/${orderId}/pay`)
 export const cancelOrder = (orderId) => api.delete(`/auth/buyer/order/${orderId}/cancel`)

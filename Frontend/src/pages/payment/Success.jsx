@@ -65,7 +65,7 @@ export default function PaymentSuccess() {
         </div>
 
         <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
-          <Link to="/buyer/orders/pending" className="btn btn-success" id="view-orders-btn">
+          <Link to="/buyer/orders" className="btn btn-success" id="view-orders-btn">
             <Package size={15} />
             View Orders
           </Link>

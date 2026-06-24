@@ -34,7 +34,8 @@ const inventoryWorker= new Worker('inventoryQueue',async(job)=>{
             `
             UPDATE products p
             SET reserved_quantity =
-               GREATEST(0, p.reserved_quantity - i.quantity)
+               GREATEST(0, p.reserved_quantity - i.quantity),
+               stock_quantity=p.stock_quantity+i.quantity
             FROM order_items i
             WHERE p.id = i.product_id
             AND i.order_id = $1

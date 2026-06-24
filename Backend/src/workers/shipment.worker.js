@@ -1,13 +1,20 @@
 import { Worker } from "bullmq";
 import { query } from "../config/database.js";
-const shipmentWorker=new Worker('shipmentQueue',async(job)=>{
+import { redis } from "../utils/redis.js";
+import { updateOrder } from "../models/order.model.js";
+export const shipmentWorker=new Worker('shipmentQueue',async(job)=>{
     if(job.name=='createShipment'){
         try {
             const{orderId}=job.data;
-            const shipment= await query(` insert into shipments (order_id) values ($1,)`,[orderId]);
+            const shipment= await query(
+                `INSERT INTO shipments(order_id)
+                VALUES($1)
+                ON CONFLICT(order_id) DO NOTHING`,
+                [orderId]
+            );
             const result =await updateOrder(orderId,"shipment");
         } catch (error) {
-            throw err;
+            throw error;
         }
     }
     if(job.name=='cancelShipment'){
