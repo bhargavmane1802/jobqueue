@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { UserPlus, User, Mail, Lock, Eye, EyeOff, ShoppingBag, Store } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { register } from '../../api/auth.api'
@@ -18,21 +18,24 @@ export default function Register() {
       setError('Please fill in all fields')
       return
     }
-    if (form.password.length < 6) {
-      setError('Password must be at least 6 characters')
+    if (form.password.length < 8) {
+      setError('Password must be at least 8 characters')
       return
     }
     setLoading(true)
     try {
-      await register(form)
-      toast.success('Account created! Please sign in.')
-      navigate('/login')
+      const { data } = await register(form)
+      toast.success('OTP sent to your email!')
+      // Pass email to OTP page via location state so it can be displayed
+      navigate('/verify-otp', { state: { email: data.email, context: 'register' } })
     } catch (err) {
       setError(err.response?.data?.message || 'Registration failed')
     } finally {
       setLoading(false)
     }
   }
+
+  const update = (field) => (e) => setForm({ ...form, [field]: e.target.value })
 
   return (
     <div className="auth-page">
@@ -82,7 +85,7 @@ export default function Register() {
                 type="text"
                 placeholder="Choose a username"
                 value={form.username}
-                onChange={(e) => setForm({ ...form, username: e.target.value })}
+                onChange={update('username')}
                 id="register-username"
               />
             </div>
@@ -97,7 +100,7 @@ export default function Register() {
                 type="email"
                 placeholder="Enter your email"
                 value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
+                onChange={update('email')}
                 id="register-email"
               />
             </div>
@@ -110,9 +113,9 @@ export default function Register() {
               <input
                 className="input-field"
                 type={showPass ? 'text' : 'password'}
-                placeholder="Min 6 characters"
+                placeholder="Min 8 characters"
                 value={form.password}
-                onChange={(e) => setForm({ ...form, password: e.target.value })}
+                onChange={update('password')}
                 id="register-password"
                 style={{ paddingRight: '44px' }}
               />
@@ -144,13 +147,10 @@ export default function Register() {
                   borderTopColor: 'white', borderRadius: '50%',
                   animation: 'spin 0.6s linear infinite',
                 }} />
-                Creating account...
+                Sending OTP...
               </span>
             ) : (
-              <>
-                <UserPlus size={16} />
-                Create Account
-              </>
+              <><UserPlus size={16} /> Create Account</>
             )}
           </button>
         </form>
@@ -160,9 +160,7 @@ export default function Register() {
         </div>
       </div>
 
-      <style>{`
-        @keyframes spin { to { transform: rotate(360deg); } }
-      `}</style>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   )
 }

@@ -6,6 +6,8 @@ import ProtectedRoute from './components/layout/ProtectedRoute'
 import Landing from './pages/Landing'
 import Login from './pages/auth/Login'
 import Register from './pages/auth/Register'
+import VerifyOtp from './pages/auth/VerifyOtp'
+import ChangePassword from './pages/auth/ChangePassword'
 
 // Payment callbacks
 import PaymentSuccess from './pages/payment/Success'
@@ -30,8 +32,14 @@ export default function App() {
         <Route path="/" element={<Landing />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/verify-otp" element={<VerifyOtp />} />
 
-        {/* Stripe redirect callbacks — no auth required */}
+        {/* Change password — requires auth */}
+        <Route path="/change-password" element={
+          <ProtectedRoute><ChangePassword /></ProtectedRoute>
+        } />
+
+        {/* Stripe redirect callbacks */}
         <Route path="/payment/success" element={<PaymentSuccess />} />
         <Route path="/payment/cancel"  element={<PaymentCancel />} />
 
@@ -45,12 +53,10 @@ export default function App() {
         <Route path="/buyer/cart" element={
           <ProtectedRoute role="buyer"><Cart /></ProtectedRoute>
         } />
-
-        {/* Consolidated orders page (replaces /orders/pending + /orders/completed) */}
         <Route path="/buyer/orders" element={
           <ProtectedRoute role="buyer"><AllOrders /></ProtectedRoute>
         } />
-        {/* Legacy redirects so old links still work */}
+        {/* Legacy redirects */}
         <Route path="/buyer/orders/pending"   element={<Navigate to="/buyer/orders" replace />} />
         <Route path="/buyer/orders/completed" element={<Navigate to="/buyer/orders" replace />} />
 

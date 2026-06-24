@@ -1,5 +1,5 @@
 import { Link, NavLink, useNavigate } from 'react-router-dom'
-import { ShoppingCart, Package, LogOut, Home } from 'lucide-react'
+import { ShoppingCart, Package, LogOut, Home, Settings } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
 import toast from 'react-hot-toast'
 
@@ -65,6 +65,13 @@ export default function BuyerNavbar({ cartCount = 0 }) {
           <div className="navbar-avatar" title={user?.username}>
             {user?.username?.[0]?.toUpperCase() || 'U'}
           </div>
+          <Link
+            to="/change-password"
+            className="btn btn-ghost btn-sm"
+            id="buyer-change-password"
+          >
+            <Settings size={14} />
+          </Link>
           <button
             className="btn btn-ghost btn-sm"
             onClick={handleLogout}

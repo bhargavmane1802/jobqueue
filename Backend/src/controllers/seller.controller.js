@@ -3,7 +3,7 @@ import { query } from "../config/database.js";
 export const displayProducts=async(req,res,next)=>{
     try {
         const {id}=req.user;
-        const products=await query('select id,title,description,product_images,price from products where seller_id=$1',[id]);
+        const products=await query('select * from products where seller_id=$1',[id]);
         return res.status(200).json(products.rows);
     } catch (error) {
       console.log('displayProducts');
@@ -16,7 +16,7 @@ export const productDetails=async(req,res,next)=>{
     const {productId}=req.params;
     const {id}=req.user;
     const product =await query('select * from products where id=$1 and seller_id=$2',[productId,id]);
-    if(product.rows.lenght==0) throw new Error("product not found");
+    if(product.rows.length == 0) throw new Error("product not found");
     return res.status(200).json({product:product.rows[0]});
   } catch (error) {
     console.log("productDetails");
@@ -27,8 +27,8 @@ export const createProduct =async(req,res,next)=>{
   try {
     const {title,description,price,stock_quantity}=req.body;
     const {id}=req.user;
-    
-    const product=await query('insert into products (seller_id,title,description,price,stock_quantity) values ($1,$2,$3,$4,$5) returning * ',[id,title,description,price,stock_quantity]);
+    const imageUrls = req.files ? req.files.map(file => file.path) : [];
+    const product=await query('insert into products (seller_id,title,description,price,stock_quantity,product_images) values ($1,$2,$3,$4,$5,$6) returning * ',[id,title,description,price,stock_quantity,imageUrls]);
     return res.status(201).json({
       product: product.rows[0]
     });
