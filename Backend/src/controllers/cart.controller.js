@@ -4,6 +4,7 @@ import { inventoryCheck } from "../services/inventory.service.js";
 import { createItems } from "../models/order.model.js";
 import { createPayment } from "../models/payment.model.js";
 import { payment } from "../services/payment.service.js";
+import { paymentQueue } from "../queues/payment.queue.js";
 
 export const getCartItems=async (req,res,next)=>{
     try {
@@ -111,15 +112,6 @@ export const createOrder = async (req, res, next) => {
     const paymentId =await createPayment(orderId,cost);
     await query('commit');
     const url =await payment(inventory,orderId,email,id);
-    await query(
-        `
-        UPDATE payments
-        SET payment_url = $1
-        WHERE id = $2
-        `,
-        [url, paymentId]
-        );
-
     return res.status(201).json({
       orderId,
       paymentId,

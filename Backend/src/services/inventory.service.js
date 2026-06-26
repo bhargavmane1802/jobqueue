@@ -80,13 +80,5 @@ const updateInventoryOrder=async(orderId)=> {
     throw new Error(`Product not found`);
    } 
 }
-const revertInventory=async(productId,quantity)=> {
-   const result = await query(
-  `UPDATE products SET reserved_quantity = reserved_quantity - $1 WHERE id = $2  RETURNING *`,[quantity, productId]
-);
-   if (result.rowCount === 0) {
-    throw new Error(`Product not found`);
-  }
-    return  result.rows;
-}
-export {inventoryService,inventoryCheck,updateInventoryOrder,revertInventory}
+
+export {inventoryService,inventoryCheck,updateInventoryOrder}

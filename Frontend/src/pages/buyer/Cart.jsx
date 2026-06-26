@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ShoppingBag, CreditCard, ExternalLink, ShoppingCart } from 'lucide-react'
 import toast from 'react-hot-toast'
@@ -7,39 +7,57 @@ import CartItem from '../../components/cart/CartItem'
 import { getCart, cartToOrder } from '../../api/buyer.api'
 
 export default function Cart() {
-  const [items, setItems] = useState([])
-  const [totalCost, setTotalCost] = useState(0)
-  const [loading, setLoading] = useState(true)
+  const [items, setItems]         = useState([])
+  const [loading, setLoading]     = useState(true)
   const [checkingOut, setCheckingOut] = useState(false)
   const navigate = useNavigate()
 
-  useEffect(() => {
-    fetchCart()
-  }, [])
+  // ── Total derived from local items state — no separate totalCost state ─────
+  // This means it updates instantly whenever qty changes, with zero extra renders
+  const totalCost = useMemo(
+    () => items.reduce((sum, item) => sum + item.price * item.quantity, 0),
+    [items]
+  )
+
+  useEffect(() => { fetchCart() }, [])
 
   const fetchCart = async () => {
     setLoading(true)
     try {
       const { data } = await getCart()
       setItems(data.rows || [])
-      setTotalCost(data.totalCost || 0)
-    } catch (err) {
+    } catch {
       toast.error('Failed to load cart')
     } finally {
       setLoading(false)
     }
   }
 
+  // ── Called by CartItem when qty changes (optimistic) ──────────────────────
+  // Only updates the one item that changed — everything else stays untouched
+  const handleQuantityChange = (productId, newQty) => {
+    setItems(prev =>
+      prev.map(item =>
+        item.product_id === productId
+          ? { ...item, quantity: newQty }   // mutate only this row
+          : item                            // all others pass through unchanged
+      )
+    )
+  }
+
+  // ── Called by CartItem when item is removed ───────────────────────────────
+  const handleRemove = (productId) => {
+    setItems(prev => prev.filter(item => item.product_id !== productId))
+  }
+
+  // ── Checkout ──────────────────────────────────────────────────────────────
   const handleCheckout = async () => {
-    if (items.length === 0) {
-      toast.error('Your cart is empty')
-      return
-    }
+    if (items.length === 0) { toast.error('Your cart is empty'); return }
     setCheckingOut(true)
     try {
       const { data } = await cartToOrder()
       toast.success('Order created! Redirecting to payment...')
-      // Redirect to Stripe
+      setItems([])   // clear cart immediately
       if (data.checkoutUrl) {
         window.location.href = data.checkoutUrl
       } else {
@@ -53,8 +71,11 @@ export default function Cart() {
   }
 
   const formatPrice = (p) =>
-    new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(p)
+    new Intl.NumberFormat('en-IN', {
+      style: 'currency', currency: 'INR', maximumFractionDigits: 0,
+    }).format(p)
 
+  // ── Loading skeleton ───────────────────────────────────────────────────────
   if (loading) {
     return (
       <div className="page-wrapper">
@@ -83,7 +104,9 @@ export default function Cart() {
         <div className="container">
           <div className="page-header">
             <h1 className="page-title">Your Cart</h1>
-            <p className="page-description">{items.length} item{items.length !== 1 ? 's' : ''} in your cart</p>
+            <p className="page-description">
+              {items.length} item{items.length !== 1 ? 's' : ''} in your cart
+            </p>
           </div>
 
           {items.length === 0 ? (
@@ -91,26 +114,36 @@ export default function Cart() {
               <div className="empty-state-icon"><ShoppingCart /></div>
               <div className="empty-state-title">Your cart is empty</div>
               <div className="empty-state-desc">Add some products to get started</div>
-              <button className="btn btn-primary" onClick={() => navigate('/buyer/home')} id="go-shopping-btn">
+              <button
+                className="btn btn-primary"
+                onClick={() => navigate('/buyer/home')}
+                id="go-shopping-btn"
+              >
                 <ShoppingBag size={16} />
                 Start Shopping
               </button>
             </div>
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '32px', alignItems: 'start' }}>
-              {/* Items */}
+
+              {/* ── Item list ───────────────────────────────────── */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                {items.map((item) => (
-                  <CartItem key={item.product_id} item={item} onRefresh={fetchCart} />
+                {items.map(item => (
+                  <CartItem
+                    key={item.product_id}
+                    item={item}
+                    onQuantityChange={handleQuantityChange}
+                    onRemove={handleRemove}
+                  />
                 ))}
               </div>
 
-              {/* Summary */}
-              <div className="checkout-summary">
+              {/* ── Order summary sidebar ────────────────────────── */}
+              <div className="checkout-summary" style={{ position: 'sticky', top: '96px' }}>
                 <div className="checkout-summary-title">Order Summary</div>
 
                 <div className="checkout-row">
-                  <span>Subtotal ({items.length} items)</span>
+                  <span>Subtotal ({items.length} item{items.length !== 1 ? 's' : ''})</span>
                   <span>{formatPrice(totalCost)}</span>
                 </div>
                 <div className="checkout-row">
@@ -124,7 +157,10 @@ export default function Cart() {
 
                 <div className="checkout-total">
                   <span>Total</span>
-                  <span style={{ color: 'var(--accent-light)', fontSize: '20px' }}>
+                  <span style={{
+                    color: 'var(--accent-light)', fontSize: '22px', fontWeight: 800,
+                    transition: 'all 0.15s ease',
+                  }}>
                     {formatPrice(totalCost)}
                   </span>
                 </div>
@@ -162,14 +198,13 @@ export default function Cart() {
                   🔒 Secured by Stripe. Stock is reserved atomically before payment.
                 </div>
               </div>
+
             </div>
           )}
         </div>
       </div>
 
-      <style>{`
-        @keyframes spin { to { transform: rotate(360deg); } }
-      `}</style>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   )
 }

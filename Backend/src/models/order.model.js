@@ -1,4 +1,5 @@
 import { query } from "../config/database.js";
+import { deadQueue } from "../queues/dead.queue.js";
 const createItems = async (customerId, cost, inventory) => {
   try {
     const orderResult = await query(
@@ -65,4 +66,15 @@ const getOrderById=async(order_id)=>{
         return null;
     }
 }
-export {createItems,getOrderById,updateOrder};
+const updatestatuscancel=async(orderId)=>{
+  try {
+    const {rows}=await query(`update orders o set status=$1 from payments p where p.order_id=o.id and p.status=$2 and o.id=$3 and o.status=$4 returning p.id as pid`,['cancelling','pending',orderId,'payment']);// return payment id 
+    if(rows.length==0) return -1;
+    return rows[0].pid;
+  } catch (error) {
+    console.log("updatestatuscancel")
+    await deadQueue.add('updatestatuscancel',{orderId});
+    throw error;
+  }
+}
+export {createItems,getOrderById,updateOrder,updatestatuscancel};

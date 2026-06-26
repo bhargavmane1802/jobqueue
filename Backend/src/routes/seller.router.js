@@ -5,6 +5,6 @@ const sellerRouter=Router();
 sellerRouter.post('/create',upload.array("images",4),createProduct);
 sellerRouter.get('/products',displayProducts);
 sellerRouter.get('/product/:productId',productDetails);
-sellerRouter.put('/product/:productId',updateProduct);
+sellerRouter.put('/product/:productId', upload.array('images', 4), updateProduct);
 sellerRouter.delete('/product/:productId',deleteProduct);
 export {sellerRouter}

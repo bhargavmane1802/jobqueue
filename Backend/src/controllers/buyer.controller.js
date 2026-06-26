@@ -98,20 +98,12 @@ export const buySingleItem=async(req,res,next)=>{
         throw new Error("insufficient stocks available");
         }
         const cost =inventory.rows[0].cost;
-        const order=await query('insert into orders (customer_id,total_cost)values ($1,$2) returning id',[id,cost]);
+        const order=await query('insert into orders (customer_id,total_cost,status) values ($1,$2,$3) returning id',[id,cost,'payment']);
         const order_items=await query('insert into order_items (order_id,product_id,quantity,price) values ($1,$2,$3,$4)',[order.rows[0].id,productId,quantity,inventory.rows[0].price]);
         const paymentId =await createPayment(order.rows[0].id,cost);
         await query('commit');
         transactionStarted = false;
         const url=await payment(inventory.rows,order.rows[0].id,email,id);
-        await query(
-        `
-        UPDATE payments
-        SET payment_url = $1
-        WHERE id = $2
-        `,
-        [url, paymentId]
-        );
 
     return res.status(201).json({
       orderId:order.rows[0].id,

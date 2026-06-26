@@ -1,6 +1,6 @@
 import { emailQueue } from "../queues/email.queue.js";
 import { redis } from "../utils/redis.js";
-import { updaateUserPassword } from "../models/user.model.js";
+import { updateUserPassword } from "../models/user.model.js";
 import bcrypt from 'bcrypt';
 
 export const changePassword = async (req, res, next) => {

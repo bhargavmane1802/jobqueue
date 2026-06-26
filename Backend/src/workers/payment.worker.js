@@ -1,20 +1,38 @@
 import { redis } from "../utils/redis.js";
 import { Worker } from "bullmq";
-import { createPayment, updatePayment, updatePaymentStatus } from "../models/payment.model.js";
-import { updateOrder } from "../models/order.model.js";
+import { createPayment, updatePaymentStatus } from "../models/payment.model.js";
+import { updateOrder, updatestatuscancel } from "../models/order.model.js";
 import { TransientError } from "../utils/custom.error.js";
 import { inventoryQueue } from "../queues/inventory.queue.js";
 import { emailQueue } from "../queues/email.queue.js";
-import { revertInventory } from "../services/inventory.service.js";
 import { deadQueue } from "../queues/dead.queue.js";
 import { query } from "../config/database.js";
 import { shipmentQueue } from "../queues/shipment.queue.js";
 const payment_worker=new Worker("paymentQueue",async(job)=>{
-    console.log(job.name);
+    console.log('jobname:',job.name);
     if(job.name=='paymentSuccess'){
-        const {orderId ,paymentId,userId,stripeSessionId,stripePaymentIntentId}=job.data;
-        if(!orderId || !paymentId ||!userId || !stripeSessionId|| !stripePaymentIntentId) throw new Error(`Missing data`);
-        await updatePaymentStatus(paymentId,"paid",stripeSessionId,stripePaymentIntentId);
+        const {userEmail,orderId ,paymentId,userId,stripeSessionId,stripePaymentIntentId}=job.data;
+        if(!userEmail || !orderId || !paymentId ||!userId || !stripeSessionId|| !stripePaymentIntentId) throw new Error(`Missing data`);
+        
+        await updatePaymentStatus(paymentId,stripeSessionId,stripePaymentIntentId);
+        await inventoryQueue.add('updateInventory',{orderId,userEmail},{
+              attempts: 5, // total attempts (1 initial + 4 retries)
+              backoff: {
+                type: 'exponential',
+                delay: 2000, // initial delay: 1 second
+              },
+              removeOnComplete: true,
+              removeOnFail: false,
+            });
+        await shipmentQueue.add('createShipment',{orderId},{
+              attempts: 5, // total attempts (1 initial + 4 retries)
+              backoff: {
+                type: 'exponential',
+                delay: 2000, // initial delay: 1 second
+              },
+              removeOnComplete: true,
+              removeOnFail: false,
+        });
         return {message:true};
     }
     if(job.name=='refundPayment'){
@@ -40,26 +58,6 @@ const payment_worker=new Worker("paymentQueue",async(job)=>{
 payment_worker.on("completed",async(job,result)=>{
     if(job.name=='paymentSuccess'){
         const {orderId ,userEmail}=job.data;
-        if (result.message){
-            await inventoryQueue.add('updateInventory',{orderId,userEmail},{
-              attempts: 5, // total attempts (1 initial + 4 retries)
-              backoff: {
-                type: 'exponential',
-                delay: 2000, // initial delay: 1 second
-              },
-              removeOnComplete: true,
-              removeOnFail: false,
-            });
-            await shipmentQueue.add('createShipment',{orderId},{
-              attempts: 5, // total attempts (1 initial + 4 retries)
-              backoff: {
-                type: 'exponential',
-                delay: 2000, // initial delay: 1 second
-              },
-              removeOnComplete: true,
-              removeOnFail: false,
-            });
-        }
         console.log('added to inventory and shipment queue')
 
     }//adds to inventory queue

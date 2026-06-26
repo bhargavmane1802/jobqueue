@@ -65,22 +65,28 @@ const emailWorker =new Worker('emailQueue',async (job)=>{
         await sendVerificationEmail(email,otp);
         return {success:'OTP sent'};
     }
+    if(job.name=='unpaidOrderCancel'){
+      const {orderId,products}=job.data;
+      console.log(orderId ,'send email pcount :',products.length);
+      for(let i=0;i<products.length;i++){
+            console.log(products[i]);
+        }
+      return ;
+    }
         
 },{connection:redis})
 
 emailWorker.on('completed' ,(job,result)=>{
     if(job.name=='orderCreated'){
-        const {email}=job.data;
+        const {email,products}=job.data;
         console.log(`email:set a email to the customer ${email} ,product name is ${products}`);
         for(let i=0;i<products.length;i++){
             console.log(products[i]);
         }
-    }
-    console.log(result)
-})
+    }})
 emailWorker.on('failed',async(job,err)=>{
-    await deadQueue.add('emailFailed',job);
-    console.log('email failed');
+   console.log('email failed', err.message);
+    await deadQueue.add('emailFailed',job.data);
 })
 
 

@@ -32,6 +32,16 @@ export default function ProductDetail() {
   }, [id])
 
   const handleAddToCart = async () => {
+    // [Issue 1] Frontend stock validation — don't allow adding more than available stock
+    const available = (product?.stock_quantity ?? 0) - (product?.reserved_quantity ?? 0)
+    if (quantity > available) {
+      toast.error(
+        available <= 0
+          ? 'This product is out of stock'
+          : `Only ${available} unit${available !== 1 ? 's' : ''} available`
+      )
+      return
+    }
     setAdding(true)
     try {
       await addToCart(product.id, quantity)

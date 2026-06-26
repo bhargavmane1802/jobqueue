@@ -1,4 +1,5 @@
 import { query } from "../config/database.js";
+import { deadQueue } from "../queues/dead.queue.js";
 import { inventoryQueue } from "../queues/inventory.queue.js";
 import { paymentQueue } from "../queues/payment.queue.js";
 import { shipmentQueue } from "../queues/shipment.queue.js";
@@ -126,7 +127,7 @@ const cancelOrder=async(req,res,next)=>{
             ['cancelling',orderId,id,'shipment','paid']
         );
         if(order.rows.length==0)return res.status(404).json({message:'Invalid request  q'});
-        await paymentQueue.add('refundPayment',{paymentId:order.rows[0].payment_id ,id},{
+        const jobOptions={
               attempts: 5, // total attempts (1 initial + 4 retries)
               backoff: {
                 type: 'exponential',
@@ -134,28 +135,35 @@ const cancelOrder=async(req,res,next)=>{
               },
               removeOnComplete: true,
               removeOnFail: false,
-            });
-        await inventoryQueue.add('cancelOrder',{orderId},{
-              attempts: 5, // total attempts (1 initial + 4 retries)
-              backoff: {
-                type: 'exponential',
-                delay: 2000, 
-              },
-              removeOnComplete: true,
-              removeOnFail: false,
-            });
-         await shipmentQueue.add('cancelShipment',{orderId},{
-              attempts: 5, // total attempts (1 initial + 4 retries)
-              backoff: {
-                type: 'exponential',
-                delay: 2000, 
-              },
-              removeOnComplete: true,
-              removeOnFail: false,
-            });
+            }
+        const results =await Promise.allSettled([paymentQueue.add('refundPayment',{paymentId:order.rows[0].payment_id ,id},jobOptions),
+         inventoryQueue.add('cancelOrder',{orderId},jobOptions),
+         shipmentQueue.add('cancelShipment',{orderId},jobOptions)]);
+         const queueNames = [
+            'refundPayment',
+            'cancelOrder',
+            'cancelShipment',
+          ];
+
+         const failedJobs = results
+          .map((result, index) => ({
+            queue: queueNames[index],
+            status: result.status,
+            reason: result.reason,
+          }))
+          .filter(job => job.status === 'rejected');
+
+        if (failedJobs.length > 0) {
+          await deadQueue.add('cancelOrder', {
+            orderId,
+            customerId: id,
+            failedJobs,
+          });
+        }
+         
         return res.status(200).json({message:'Order cancelled'});
     } catch (error) {
-        console.log('cancleOrder');
+        console.log('cancelOrder');
         next(error);
     }
 }

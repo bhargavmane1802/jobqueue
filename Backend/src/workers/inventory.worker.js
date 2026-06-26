@@ -30,7 +30,7 @@ const inventoryWorker= new Worker('inventoryQueue',async(job)=>{
             return true; // already processed
          }
 
-         await query(
+         const {rows} =await query(
             `
             UPDATE products p
             SET reserved_quantity =
@@ -39,11 +39,55 @@ const inventoryWorker= new Worker('inventoryQueue',async(job)=>{
             FROM order_items i
             WHERE p.id = i.product_id
             AND i.order_id = $1
+            returning p.title
             `,
             [orderId]
          );
 
          await query('COMMIT');
+         await emailQueue.add('unpaidOrderCancel',{orderId,products:rows});
+         return true;
+      } catch (err) {
+         await query('ROLLBACK');
+         throw err;
+      }
+   }
+   if (job.name === 'cancelPendingOrder') {
+      const { email,orderId } = job.data;
+      await query('BEGIN');
+      try {
+         const result = await query(
+            `
+            UPDATE orders
+            SET status = 'cancelled'
+            WHERE id = $1
+            AND status = 'cancelling'
+            RETURNING id
+            `,
+            [orderId]
+         );
+
+         if (result.rowCount === 0) {
+            await query('ROLLBACK');
+            return true; // already processed
+         }
+
+         const {rows} =await query(
+            `
+            UPDATE products p
+            SET reserved_quantity =
+               GREATEST(0, p.reserved_quantity - i.quantity)
+            FROM order_items i
+            WHERE p.id = i.product_id
+            AND i.order_id = $1
+            returning p.title
+            `,
+            [orderId]
+         );
+
+         await query('COMMIT');
+         console.log(rows.length)
+         await emailQueue.add('unpaidOrderCancel',{email,orderId,products:rows});
          return true;
       } catch (err) {
          await query('ROLLBACK');

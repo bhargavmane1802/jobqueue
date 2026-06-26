@@ -6,12 +6,12 @@ export const insertUser=async (username,password,email,role)=>{
         throw err;
     }
 }
-export const updaateUserPassword=async(id,password)=>{
+export const updateUserPassword=async(id,password)=>{
     try {
         if(!id || !password)throw new Error ('missing id pass');
         const user=await query(`update users set password=$1 where id=$2`,[password,id]);
     } catch (error) {
-        throw err;
+        throw error;
     }
 
 }
