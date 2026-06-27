@@ -17,7 +17,7 @@ export default function SellerNavbar() {
     <nav className="navbar">
       <div className="container navbar-inner">
         <Link to="/seller/dashboard" className="navbar-logo">
-          NEXUS<span>.seller</span>
+          DreamBite<span>.seller</span>
         </Link>
 
         <div className="navbar-links">
