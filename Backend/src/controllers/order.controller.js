@@ -113,7 +113,7 @@ const retryPayment = async (req, res, next) => {
 const cancelOrder=async(req,res,next)=>{
     try {
         const {orderId}=req.params;
-        const {id}=req.user;
+        const {id,email}=req.user;
         if(!orderId)return res.status(400).json({message:'insufficient information '});
         const order =await query(`UPDATE orders o
             SET status = $1
@@ -137,7 +137,7 @@ const cancelOrder=async(req,res,next)=>{
               removeOnFail: false,
             }
         const results =await Promise.allSettled([paymentQueue.add('refundPayment',{paymentId:order.rows[0].payment_id ,id},jobOptions),
-         inventoryQueue.add('cancelOrder',{orderId},jobOptions),
+         inventoryQueue.add('cancelOrder',{orderId,email},jobOptions,),
          shipmentQueue.add('cancelShipment',{orderId},jobOptions)]);
          const queueNames = [
             'refundPayment',

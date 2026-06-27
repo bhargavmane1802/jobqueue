@@ -17,7 +17,7 @@ export const payment =async(inventory,orderId,email,id,paymentId)=>{
   
         mode: 'payment',
   
-        expires_at: Math.floor(Date.now() / 1000) + (60 * 60),
+        expires_at: Math.floor(Date.now() / 1000) + (30*60),//testing purpose
 
         success_url:
           `${process.env.CLIENT_URL}/payment/success?session_id={CHECKOUT_SESSION_ID}`,//redirects to order page

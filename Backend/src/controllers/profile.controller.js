@@ -17,8 +17,8 @@ export const changePassword = async (req, res, next) => {
     const hashedPassword = await bcrypt.hash(password, 10);
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-    await redis.set(`otp:${otp}`, JSON.stringify({ id, hashedPassword }));
-    await redis.expire(`otp:${otp}`, 600);
+    await redis.set(`${email}:${otp}`, JSON.stringify({ id, hashedPassword }));
+    await redis.expire(`${email}:${otp}`, 600);
     await emailQueue.add("OTP", { otp, email });
 
     return res.status(200).json({ message: "OTP sent to your email" });
@@ -31,14 +31,15 @@ export const changePassword = async (req, res, next) => {
 export const verifyPasswordChange = async (req, res, next) => {
   try {
     const { otp } = req.body;
+    const {email}=req.user;
     if (!otp) return res.status(400).json({ message: "OTP is required" });
 
-    const data = await redis.get(`otp:${otp}`);
+    const data = await redis.get(`${email}:${otp}`);
     if (!data) return res.status(404).json({ message: "OTP invalid or expired" });
 
     const { id, hashedPassword } = JSON.parse(data);
-    await updaateUserPassword(id, hashedPassword);
-    await redis.del(`otp:${otp}`);
+    await updateUserPassword(id, hashedPassword);
+    await redis.del(`${email}:${otp}`);
 
     return res.status(200).json({ message: "Password updated successfully" });
   } catch (error) {

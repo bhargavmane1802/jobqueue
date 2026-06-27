@@ -5,8 +5,6 @@ const createPayment =async(order_id,amount)=>{
          const { rows } = await query(
             `INSERT INTO payments (order_id, amount)
              VALUES ($1, $2)
-             ON CONFLICT (order_id)
-             DO UPDATE SET amount = payments.amount
              RETURNING id`,
             [order_id, amount]
         );

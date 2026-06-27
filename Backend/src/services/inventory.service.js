@@ -74,7 +74,7 @@ const inventoryCheck = async (buyerId) => {
 const updateInventoryOrder=async(orderId)=> {
    //for all the order_idem with order id =id update product rese_stock -order.item.quantity;
    try {
-      const products =await query('UPDATE products p SET reserved_quantity = p.reserved_quantity - o.quantity ,stock_quantity=p.stock_quantity-o.quantity FROM order_items o WHERE o.order_id = $1 AND o.product_id = p.id RETURNING p.title, o.quantity',[orderId]);
+      const products =await query('UPDATE products p SET reserved_quantity = p.reserved_quantity - o.quantity ,stock_quantity=p.stock_quantity-o.quantity FROM order_items o WHERE o.order_id = $1 AND o.product_id = p.id RETURNING p.title, o.quantity,p.price',[orderId]);
       return products.rows;
    } catch (error) {
     throw new Error(`Product not found`);

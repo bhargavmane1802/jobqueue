@@ -104,7 +104,6 @@ export const buySingleItem=async(req,res,next)=>{
         await query('commit');
         transactionStarted = false;
         const url=await payment(inventory.rows,order.rows[0].id,email,id);
-
     return res.status(201).json({
       orderId:order.rows[0].id,
       paymentId,

@@ -11,7 +11,7 @@ const inventoryWorker= new Worker('inventoryQueue',async(job)=>{
    await emailQueue.add("orderCreated",{userEmail,products});
    return true;}
    if (job.name === 'cancelOrder') {
-      const { orderId } = job.data;
+      const { orderId,email } = job.data;
       await query('BEGIN');
       try {
          const result = await query(
@@ -39,13 +39,13 @@ const inventoryWorker= new Worker('inventoryQueue',async(job)=>{
             FROM order_items i
             WHERE p.id = i.product_id
             AND i.order_id = $1
-            returning p.title
+            returning p.title,p.price,i.quantity
             `,
             [orderId]
          );
 
          await query('COMMIT');
-         await emailQueue.add('unpaidOrderCancel',{orderId,products:rows});
+         await emailQueue.add('orderCancelMail',{email,orderId,products:rows});
          return true;
       } catch (err) {
          await query('ROLLBACK');
@@ -80,14 +80,14 @@ const inventoryWorker= new Worker('inventoryQueue',async(job)=>{
             FROM order_items i
             WHERE p.id = i.product_id
             AND i.order_id = $1
-            returning p.title
+            returning p.title,p.price,i.quantity
             `,
             [orderId]
          );
 
          await query('COMMIT');
          console.log(rows.length)
-         await emailQueue.add('unpaidOrderCancel',{email,orderId,products:rows});
+         await emailQueue.add('orderCancelMail',{email,orderId,products:rows});
          return true;
       } catch (err) {
          await query('ROLLBACK');

@@ -110,8 +110,8 @@ export const createOrder = async (req, res, next) => {
     },0);
     const orderId = await createItems(id,cost,inventory); //insert in order table and order_items
     const paymentId =await createPayment(orderId,cost);
-    console.log(paymentId);
     await query('commit');
+    transactionStarted = false;
     const url =await payment(inventory,orderId,email,id,paymentId);
     return res.status(201).json({
       orderId,

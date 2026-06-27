@@ -1,18 +1,18 @@
 import jwt from "jsonwebtoken"
 import dotenv from "dotenv/config"
-const validate_auth=async(req,res,next)=>{
+const validate_auth=(req,res,next)=>{
     try{
         const authHeader=req.headers.authorization;
-        if(!authHeader || !authHeader.startsWith("Bearer ")){return res.status(401).json({message:"unauthorized user"})};
+        if(!authHeader || !authHeader.startsWith("Bearer ")){return res.status(401).redirect('/login')};
         const token=authHeader.split(" ")[1];
         const decoded= jwt.verify(token,process.env.JWT_KEY);
         req.user=decoded;
-        return next();
+        next();
     }
     catch(e){
         console.log("failed to validate user");
         e.message="error in auth validation"
-        return next(e);
+        return res.status(401).redirect("/login");
     }
 }
 export default validate_auth;
