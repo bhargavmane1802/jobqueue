@@ -95,7 +95,7 @@ const retryPayment = async (req, res, next) => {
     );
 
     // 3. Always create a fresh Stripe session (expires after 1 hour)
-    const url = await payment(itemsResult.rows, orderId, email, id);
+    const url = await payment(itemsResult.rows, orderId, email, id,order.payment_id);
 
     // 4. Save the fresh URL into the payments table
     await query(

@@ -13,7 +13,7 @@ const payment_worker=new Worker("paymentQueue",async(job)=>{
     if(job.name=='paymentSuccess'){
         const {userEmail,orderId ,paymentId,userId,stripeSessionId,stripePaymentIntentId}=job.data;
         if(!userEmail || !orderId || !paymentId ||!userId || !stripeSessionId|| !stripePaymentIntentId) throw new Error(`Missing data`);
-        
+        console.log(paymentId,typeof(paymentId))
         await updatePaymentStatus(paymentId,stripeSessionId,stripePaymentIntentId);
         await inventoryQueue.add('updateInventory',{orderId,userEmail},{
               attempts: 5, // total attempts (1 initial + 4 retries)

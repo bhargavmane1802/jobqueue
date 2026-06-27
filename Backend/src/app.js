@@ -30,10 +30,6 @@ app.post('/stripe/webhook',express.raw({ type: 'application/json' }),async (req,
     }
 
     const session = event.data.object;     
-      session.metadata.orderId=46
-      session.metadata.paymentId=46
-      session.metadata.userId=3
-      session.metadata.userEmail='bhargavmane18@gmail.com'
       session.metadata.stripeSessionId=session.id;
       session.metadata.stripePaymentIntentId=session.payment_intent;
       console.log(event.type);
@@ -90,6 +86,7 @@ app.post('/stripe/webhook',express.raw({ type: 'application/json' }),async (req,
               removeOnComplete: true,
               removeOnFail: false,
             });
+          return res.status(200).json({message:'done'});
 
         } catch (error) {
           console.log('checkout.session.expired')

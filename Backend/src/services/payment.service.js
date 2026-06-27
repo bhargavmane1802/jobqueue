@@ -1,5 +1,5 @@
 import Stripe from "stripe";
-export const payment =async(inventory,orderId,email,id)=>{
+export const payment =async(inventory,orderId,email,id,paymentId)=>{
   try {
     const stripe = new Stripe(process.env.STRIPE);
       const session = await stripe.checkout.sessions.create({
@@ -28,7 +28,8 @@ export const payment =async(inventory,orderId,email,id)=>{
         metadata: {
           orderId: String(orderId),
           userId: String(id),
-          userEmail:String(email)
+          userEmail:String(email),
+          paymentId:String(paymentId)
         }
       });
       return session.url;

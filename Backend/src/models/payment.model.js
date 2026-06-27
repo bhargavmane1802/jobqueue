@@ -2,7 +2,15 @@ import { query } from "../config/database.js";
 import { deadQueue } from "../queues/dead.queue.js";
 const createPayment =async(order_id,amount)=>{
     try {
-        const {rows}= await query("INSERT INTO payments (order_id,amount) VALUES ($1,$2) RETURNING id",[order_id,amount]);
+         const { rows } = await query(
+            `INSERT INTO payments (order_id, amount)
+             VALUES ($1, $2)
+             ON CONFLICT (order_id)
+             DO UPDATE SET amount = payments.amount
+             RETURNING id`,
+            [order_id, amount]
+        );
+        if(rows.length==0)throw new Error("createPayment wrong");
         return rows[0].id;
     } catch (error) {
         console.log("createPayment")
