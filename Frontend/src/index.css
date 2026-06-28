@@ -1156,6 +1156,560 @@ input, textarea, select {
   margin-top: var(--space-4);
 }
 
+/* ---------- Chocolate Hero — Design Tokens ---------- */
+:root {
+  --choco-bg: #1a120b;
+  --choco-bg-deep: #0f0a06;
+  --choco-fg: #f5ede4;
+  --choco-fg-muted: #a89888;
+  --choco-primary: #c8a050;
+  --choco-primary-light: #dab96e;
+  --choco-border: rgba(200, 160, 80, 0.15);
+  --choco-font-script: 'Dancing Script', cursive;
+  --choco-font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* Per-theme glow colors */
+.choco-hero[data-theme="snow-white"]     { --theme-glow: rgba(255, 248, 230, 0.10); }
+.choco-hero[data-theme="butter-delight"] { --theme-glow: rgba(200, 165, 80, 0.12); }
+.choco-hero[data-theme="candy-crush"]    { --theme-glow: rgba(255, 120, 180, 0.12); }
+.choco-hero[data-theme="dark-solid"]     { --theme-glow: rgba(180, 120, 50, 0.10); }
+.choco-hero[data-theme="pink-world"]     { --theme-glow: rgba(230, 100, 160, 0.14); }
+.choco-hero[data-theme="assortments"]    { --theme-glow: rgba(200, 160, 80, 0.10); }
+
+/* ---------- Chocolate Hero — Container ---------- */
+.choco-hero {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  background: var(--choco-bg-deep);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  font-family: var(--choco-font-body);
+  color: var(--choco-fg);
+}
+
+/* ---------- Full-bleed background image + faded overlay (covers the whole page) ---------- */
+.choco-hero-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.choco-hero-slide {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transform: scale(1.02);
+  transition: opacity 700ms ease, transform 1200ms ease;
+  pointer-events: none;
+}
+
+.choco-hero-slide.active {
+  opacity: 1;
+  transform: scale(1);
+  pointer-events: auto;
+}
+
+.choco-hero-slide img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: drop-shadow(0 20px 60px rgba(0,0,0,0.5));
+}
+
+/* Soft fade — image stays partially visible, text reads clearly above it */
+.choco-hero-overlay {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(15, 10, 6, 0.35) 0%,
+      rgba(15, 10, 6, 0.25) 35%,
+      rgba(15, 10, 6, 0.55) 70%,
+      rgba(15, 10, 6, 0.78) 100%
+    );
+  pointer-events: none;
+}
+
+/* ---------- Chocolate Top Bar ---------- */
+.choco-topbar {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 40px;
+   background: rgba(15, 10, 6, 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--choco-border);
+}
+
+.choco-brand {
+  font-family: var(--choco-font-script);
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--choco-primary-light);
+  letter-spacing: 0.02em;
+  text-decoration: none;
+}
+
+.choco-topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.choco-topbar-btn {
+  padding: 8px 20px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  transition: all 250ms ease;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.choco-topbar-btn.secondary {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--choco-fg);
+  border: 1px solid var(--choco-border);
+}
+.choco-topbar-btn.secondary:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(200, 160, 80, 0.3);
+}
+
+.choco-topbar-btn.primary {
+  background: linear-gradient(135deg, var(--choco-primary), #b08830);
+  color: #1a120b;
+  border: none;
+}
+.choco-topbar-btn.primary:hover {
+  box-shadow: 0 0 24px rgba(200, 160, 80, 0.4);
+  transform: translateY(-1px);
+}
+
+/* ---------- Hero Main Area (overlays the full-bleed image) ---------- */
+.choco-hero-main {
+  position: relative;
+  z-index: 2;
+  flex: 1;
+  display: grid;
+  grid-template-columns: 140px 1fr 420px;
+  gap: 0;
+  align-items: stretch;
+  padding: 8px 0 0;
+}
+
+/* ---------- Left Thumbnail Strip ---------- */
+.choco-thumb-col {
+  position: relative;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 0 12px 0 24px;
+  background: linear-gradient(
+    90deg,
+    rgba(15, 10, 6, 0.55) 0%,
+    rgba(15, 10, 6, 0.0) 100%
+  );
+}
+
+.choco-thumb-arrow {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: var(--choco-fg-muted);
+  cursor: pointer;
+  transition: all 200ms ease;
+  border-radius: 50%;
+}
+.choco-thumb-arrow:hover {
+  color: var(--choco-fg);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.choco-thumb-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow: hidden;
+}
+
+.choco-thumb-item {
+  position: relative;
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  overflow: hidden;
+  cursor: pointer;
+  border: 2px solid rgba(255, 255, 255, 0.08);
+  transition: all 300ms ease;
+  flex-shrink: 0;
+}
+
+.choco-thumb-item:hover {
+  border-color: var(--choco-primary);
+  transform: scale(1.05);
+}
+
+.choco-thumb-item.active {
+  border-color: var(--choco-primary-light);
+  box-shadow: 0 0 20px rgba(200, 160, 80, 0.35);
+  transform: scale(1.1);
+}
+
+.choco-thumb-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Active label tag */
+.choco-thumb-label {
+  position: absolute;
+  left: 80px;
+  top: 50%;
+  transform: translateY(-50%);
+  white-space: nowrap;
+  background: var(--choco-fg);
+  color: var(--choco-bg);
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 300ms ease;
+  z-index: 10;
+}
+
+.choco-thumb-label span {
+  display: block;
+  font-size: 9px;
+  font-weight: 500;
+  color: var(--choco-fg-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-top: 2px;
+}
+
+.choco-thumb-item.active .choco-thumb-label {
+  opacity: 1;
+}
+
+/* ---------- Center — empty spacer (the real image is in choco-hero-bg) ---------- */
+.choco-center {
+  position: relative;
+  height: 100%;
+}
+
+.choco-hero-image-wrap {
+  display: none;
+}
+
+/* Script title overlay */
+.choco-hero-title {
+  position: absolute;
+  top: 8%;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--choco-font-script);
+  font-size: clamp(3rem, 6vw, 5.5rem);
+  font-weight: 700;
+  font-style: italic;
+  color: var(--choco-fg);
+  text-shadow: 0 4px 32px rgba(0,0,0,0.6), 0 2px 8px rgba(0,0,0,0.4);
+  text-align: center;
+  line-height: 1.1;
+  white-space: nowrap;
+  z-index: 3;
+  opacity: 0;
+  animation: choco-title-in 600ms ease forwards;
+}
+
+.choco-hero-slide.active .choco-hero-title {
+  opacity: 1;
+}
+
+@keyframes choco-title-in {
+  from { opacity: 0; transform: translateX(-50%) translateY(20px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* ---------- Right Info Panel (sits above the full-bleed image) ---------- */
+.choco-info-col {
+  position: relative;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 32px 40px 48px 20px;
+  gap: 18px;
+}
+
+/* Subtle frosted card behind the text so it stays legible while the image shows through */
+.choco-info-content {
+  position: relative;
+  padding: 26px 28px;
+  border-radius: 14px;
+  background: linear-gradient(
+    180deg,
+    rgba(15, 10, 6, 0.55) 0%,
+    rgba(15, 10, 6, 0.70) 100%
+  );
+  border: 1px solid rgba(200, 160, 80, 0.18);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 18px 60px rgba(0,0,0,0.45);
+  opacity: 0;
+  transform: translateY(12px);
+  transition: opacity 500ms ease, transform 500ms ease;
+}
+.choco-info-content.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Stylish, italic, curved theme name sitting above the description */
+.choco-theme-name {
+  font-family: var(--choco-font-script);
+  font-size: clamp(2.6rem, 4.6vw, 3.8rem);
+  font-weight: 700;
+  font-style: italic;
+  color: var(--choco-fg);
+  line-height: 1;
+  letter-spacing: 0.01em;
+  /* curved/leaning look */
+  transform: skewX(-6deg) rotate(-1.5deg);
+  transform-origin: left center;
+  text-shadow:
+    0 2px 12px rgba(0,0,0,0.55),
+    0 0 24px rgba(200, 160, 80, 0.18);
+  background: linear-gradient(
+    135deg,
+    var(--choco-fg) 0%,
+    var(--choco-primary-light) 50%,
+    var(--choco-fg) 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 4px;
+}
+
+.choco-theme-subtitle {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--choco-primary);
+  margin-top: -2px;
+  margin-bottom: 8px;
+}
+/* Specs row */
+.choco-specs {
+  display: flex;
+  gap: 0;
+}
+
+.choco-spec {
+  flex: 1;
+  text-align: center;
+  padding: 0 12px;
+  border-right: 1px solid var(--choco-border);
+}
+.choco-spec:last-child { border-right: none; }
+
+.choco-spec-label {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--choco-fg-muted);
+  margin-bottom: 4px;
+}
+
+.choco-spec-value {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--choco-fg);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* Description */
+.choco-description {
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--choco-fg-muted);
+}
+
+/* Price */
+.choco-price {
+  font-size: 32px;
+  font-weight: 300;
+  color: var(--choco-fg);
+  letter-spacing: -0.02em;
+}
+
+.choco-delivery {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--choco-fg-muted);
+  margin-top: 4px;
+}
+
+/* Quantity + ATC */
+.choco-cart-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.choco-qty-stepper {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--choco-border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.choco-qty-btn {
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: var(--choco-fg-muted);
+  cursor: pointer;
+  transition: all 200ms ease;
+}
+.choco-qty-btn:hover {
+  background: rgba(255,255,255,0.06);
+  color: var(--choco-fg);
+}
+
+.choco-qty-value {
+  width: 38px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--choco-fg);
+  border-left: 1px solid var(--choco-border);
+  border-right: 1px solid var(--choco-border);
+  line-height: 38px;
+}
+
+.choco-atc-btn {
+  flex: 1;
+  padding: 10px 24px;
+  background: linear-gradient(135deg, var(--choco-primary), #b08830);
+  color: var(--choco-bg);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 250ms ease;
+  border: none;
+}
+.choco-atc-btn:hover {
+  box-shadow: 0 4px 24px rgba(200, 160, 80, 0.4);
+  transform: translateY(-1px);
+}
+
+/* ---------- Horizontal Nav Arrows ---------- */
+.choco-nav-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 20;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--choco-border);
+  color: var(--choco-fg-muted);
+  cursor: pointer;
+  transition: all 300ms ease;
+  backdrop-filter: blur(8px);
+}
+.choco-nav-arrow:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--choco-fg);
+  border-color: var(--choco-primary);
+  box-shadow: 0 0 24px rgba(200, 160, 80, 0.2);
+}
+
+.choco-nav-arrow.left  { left: 16px; }
+.choco-nav-arrow.right { right: 16px; }
+
+/* ---------- Pagination Dots ---------- */
+.choco-pagination {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px 0 24px;
+}
+
+.choco-dot {
+  width: 24px;
+  height: 3px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.15);
+  cursor: pointer;
+  transition: all 300ms ease;
+}
+.choco-dot:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+.choco-dot.active {
+  width: 36px;
+  background: var(--choco-primary-light);
+  box-shadow: 0 0 8px rgba(200, 160, 80, 0.5);
+}
+
+/* ---------- Info panel transition ---------- */
+.choco-info-content {
+  opacity: 0;
+  transform: translateY(12px);
+  transition: opacity 500ms ease, transform 500ms ease;
+}
+.choco-info-content.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
 /* ---------- Responsive ---------- */
 @media (max-width: 768px) {
   .product-grid {
@@ -1172,9 +1726,64 @@ input, textarea, select {
   }
 
   .hero-title { font-size: 2rem; }
+
+  /* Chocolate hero responsive */
+  
+
+  .choco-hero-main {
+    grid-template-columns: 1fr;
+      grid-template-rows: auto 1fr;
+    padding: 0;
+  }
+
+  .choco-thumb-col {
+    display: none;
+  }
+
+  .choco-center {
+      display: none;
+  }
+
+ .choco-hero-title {
+    font-size: clamp(2rem, 8vw, 3rem);
+  }
+
+   .choco-info-col {
+    padding: 24px 20px 16px;
+      align-items: stretch;
+    }
+
+  .choco-nav-arrow {
+    width: 38px;
+    height: 38px;
+  }
+
+  .choco-topbar {
+    padding: 12px 16px;
+  }
+
+  .choco-brand {
+    font-size: 22px;
+  }
 }
 
 @media (max-width: 480px) {
   .container { padding: 0 var(--space-4); }
   .cart-item { flex-wrap: wrap; }
-}
+
+  .choco-specs {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .choco-spec {
+    border-right: none;
+    flex: 0 0 30%;
+  }
+
+  .choco-cart-row {
+      flex-direction: column;
+    }
+    .choco-atc-btn {
+      width: 100%;
+    }
+  }
