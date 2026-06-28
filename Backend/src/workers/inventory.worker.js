@@ -86,7 +86,7 @@ const inventoryWorker= new Worker('inventoryQueue',async(job)=>{
          );
 
          await query('COMMIT');
-         console.log(rows.length)
+         console.log(rows.length ,'product reverted of pending order');
          await emailQueue.add('orderCancelMail',{email,orderId,products:rows});
          return true;
       } catch (err) {

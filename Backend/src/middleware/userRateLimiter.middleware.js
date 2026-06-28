@@ -38,7 +38,7 @@ export const loginLimiter = rateLimit({
     prefix: 'rl:login:', // Unique prefix for Redis keys
   }),
   windowMs: 15 * 60 * 1000, 
-  max: 5, 
+  max: 10, 
   message: { message: "Too many login attempts, please try again after 15 minutes" },
   standardHeaders: true,
   legacyHeaders: false,

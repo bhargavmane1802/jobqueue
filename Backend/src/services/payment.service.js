@@ -1,7 +1,7 @@
 import Stripe from "stripe";
+const stripe = new Stripe(process.env.STRIPE);
 export const payment =async(inventory,orderId,email,id,paymentId)=>{
   try {
-    const stripe = new Stripe(process.env.STRIPE);
       const session = await stripe.checkout.sessions.create({
         payment_method_types: ['card','upi'],
         line_items: inventory.map(item => ({
@@ -35,7 +35,24 @@ export const payment =async(inventory,orderId,email,id,paymentId)=>{
       return session.url;
 
   } catch (error) {
-    console.log("payment",error);
+    console.log("payment",error.message);
     throw new Error('payment error');
+  }
+}
+export const refundService=async(payment)=>{
+  try {
+    if(!payment)throw new Error ('MissingpaymentIdinService');
+    let amount;
+    if(payment.amount<200)amount=payment.amount;
+    else amount=payment.amount-40;
+    amount=amount*100;
+    const refund = await stripe.refunds.create({
+      payment_intent: payment.stripepaymentintentid,
+      amount:amount,
+    });
+    return refund.status;
+  } catch (error) {
+    console.log("refundservice",error.message);
+    throw error;
   }
 }

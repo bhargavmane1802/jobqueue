@@ -8,12 +8,12 @@ import { emailQueue } from "../queues/email.queue.js";
 import { deadQueue } from "../queues/dead.queue.js";
 import { query } from "../config/database.js";
 import { shipmentQueue } from "../queues/shipment.queue.js";
+import { refundService } from "../services/payment.service.js";
 const payment_worker=new Worker("paymentQueue",async(job)=>{
     console.log('jobname:',job.name);
     if(job.name=='paymentSuccess'){
-        const {userEmail,orderId ,paymentId,userId,stripeSessionId,stripePaymentIntentId}=job.data;
+        try{const {userEmail,orderId ,paymentId,userId,stripeSessionId,stripePaymentIntentId}=job.data;
         if(!userEmail || !orderId || !paymentId ||!userId || !stripeSessionId|| !stripePaymentIntentId) throw new Error(`Missing data`);
-        console.log(paymentId,typeof(paymentId))
         await updatePaymentStatus(paymentId,stripeSessionId,stripePaymentIntentId);
         await inventoryQueue.add('updateInventory',{orderId,userEmail},{
               attempts: 5, // total attempts (1 initial + 4 retries)
@@ -33,22 +33,36 @@ const payment_worker=new Worker("paymentQueue",async(job)=>{
               removeOnComplete: true,
               removeOnFail: false,
         });
-        return {message:true};
-    }
-    if(job.name=='refundPayment'){
-        const {paymentId,id}=job.data;
-        if(!paymentId || !id) throw new Error('MissingData');
-        try{await query('begin');
-        const payment= await query('update payments set status=$1 where id=$2 and status!=$1 returning id',['refunded',paymentId]);
-        if(payment.rows.length==0){await query('commit'); return {success:'duplicate'};};
-        //refund function remaining;
-        console.log('refund successful');
-        await query('commit');}
+        return {message:true};}
         catch(err){
-            await query('rollback');
+            if(err.message =="Missing data"){
+                console.log("data missing ",job.name);
+                await deadQueue.add(job.name,job.data);
+                return {success:'failed'};
+            }
             throw err;
         }
-        return {success:"updated payment status"};
+    }
+    if(job.name=='refundPayment'){
+
+        try{
+            const {paymentId,id}=job.data;
+            if(!paymentId || !id) throw new Error('Missing data');
+            const {rows}=await query('select * from payments where id=$1 and status=$2 ',[paymentId,'refunding']);
+            if(rows.length==0)return {success:'duplicate'};
+            const refund=await refundService(rows[0]);
+            if(refund.status!='succeeded')throw new Error(refund);
+            await query('update payments set status=$1 where id=$2',['refunded',paymentId])
+            return {success:'refund successful'};
+        }
+        catch(err){
+            if(err.message =="Missing data"){
+                console.log("data missing ",job.name);
+                await deadQueue.add(job.name,job.data);
+                return {success:'failed'};
+            }
+            throw err;
+        }
     }
 },{connection:redis});
 
@@ -60,9 +74,10 @@ payment_worker.on("completed",async(job,result)=>{
         const {orderId ,userEmail}=job.data;
         console.log('added to inventory and shipment queue')
 
-    }//adds to inventory queue
+    }
     if(job.name=='refundPayment'){
-        console.log('refund job queue worked');
+        console.log(result);
+        return;
     }
 });
 

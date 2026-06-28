@@ -127,6 +127,7 @@ const cancelOrder=async(req,res,next)=>{
             ['cancelling',orderId,id,'shipment','paid']
         );
         if(order.rows.length==0)return res.status(404).json({message:'Invalid request  q'});
+        const payment= await query('update payments set status=$1 where id=$2 and status=$3 returning id',['refunding',order.rows[0].payment_id,'paid']);
         const jobOptions={
               attempts: 5, // total attempts (1 initial + 4 retries)
               backoff: {
@@ -136,7 +137,7 @@ const cancelOrder=async(req,res,next)=>{
               removeOnComplete: true,
               removeOnFail: false,
             }
-        const results =await Promise.allSettled([paymentQueue.add('refundPayment',{paymentId:order.rows[0].payment_id ,id},jobOptions),
+        const results =await Promise.allSettled([paymentQueue.add('refundPayment',{paymentId:payment.rows[0].id,id},jobOptions),
          inventoryQueue.add('cancelOrder',{orderId,email},jobOptions,),
          shipmentQueue.add('cancelShipment',{orderId},jobOptions)]);
          const queueNames = [
