@@ -37,6 +37,7 @@ app.post('/stripe/webhook',express.raw({ type: 'application/json' }),async (req,
     switch (event.type) {
 
       case 'checkout.session.completed':
+        console.log(session.payment_status);
         if (session.payment_status === 'paid') {
           await paymentQueue.add(
             'paymentSuccess',
@@ -75,7 +76,9 @@ app.post('/stripe/webhook',express.raw({ type: 'application/json' }),async (req,
         case 'checkout.session.expired':
         try {
           const pid=await updatestatuscancel(session.metadata.orderId);
-          if(pid===-1)return ;
+          if(pid===-1){
+            return res.status(200).json({ received: true, message: 'Order already cancelled or not found', });
+          }
           await updatePaymentStatustToCancelled(pid);
           await inventoryQueue.add('cancelPendingOrder',{email:session.metadata.userEmail,orderId:session.metadata.orderId},{
               attempts: 5, // total attempts (1 initial + 4 retries)
@@ -93,7 +96,7 @@ app.post('/stripe/webhook',express.raw({ type: 'application/json' }),async (req,
         }
         break;
    }
-    return;
+    res.status(200).json({ received: true });
   }
 );
 app.use(urlencoded({extended:true}))

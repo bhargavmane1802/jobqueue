@@ -1,10 +1,12 @@
-import { query } from "../config/database.js";
+import { query ,pool } from "../config/database.js";
 import Stripe from 'stripe'
 import { inventoryCheck } from "../services/inventory.service.js";
 import { createItems } from "../models/order.model.js";
 import { createPayment } from "../models/payment.model.js";
 import { payment } from "../services/payment.service.js";
 import { paymentQueue } from "../queues/payment.queue.js";
+
+
 
 export const getCartItems=async (req,res,next)=>{
     try {
@@ -99,19 +101,22 @@ export const removeItem = async (req, res, next) => {
     }
 };
 export const createOrder = async (req, res, next) => {
+    const { id } = req.user;
     let transactionStarted = false;
+    const client = await pool.connect();
   try {
     const {id,email}=req.user;
-    await query('begin');
+    await client.query('begin');
     transactionStarted = true;
-    const inventory =await inventoryCheck(id);//reserved all the products stock quantity in reserved stock
+    const inventory =await inventoryCheck(id,client);//reserved all the products stock quantity in reserved stock
     const cost=inventory.reduce((sum,row)=>{
       return sum+=Number(row.cost);
     },0);
-    const orderId = await createItems(id,cost,inventory); //insert in order table and order_items
-    const paymentId =await createPayment(orderId,cost);
-    await query('commit');
+    const orderId = await createItems(id,cost,inventory,client); //insert in order table and order_items
+    const paymentId =await createPayment(orderId,cost,client);
+    await client.query('commit');
     transactionStarted = false;
+    await query('delete from cart_items where buyer_id=$1',[id]);
     const url =await payment(inventory,orderId,email,id,paymentId);
     return res.status(201).json({
       orderId,
@@ -121,7 +126,8 @@ export const createOrder = async (req, res, next) => {
   } catch (err) {
   
     console.log("createOrder");
-    if(transactionStarted){await query("rollback");}
+    if(transactionStarted){await client.query("rollback");}
     return next(err);
   }
+  finally { client.release(); }
 };

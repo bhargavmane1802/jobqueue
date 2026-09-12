@@ -1,8 +1,8 @@
 import { query } from "../config/database.js";
 import { deadQueue } from "../queues/dead.queue.js";
-const createPayment =async(order_id,amount)=>{
+const createPayment =async(order_id,amount,client)=>{
     try {
-         const { rows } = await query(
+         const { rows } = await client.query(
             `INSERT INTO payments (order_id, amount)
              VALUES ($1, $2)
              RETURNING id`,

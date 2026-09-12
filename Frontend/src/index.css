@@ -1169,7 +1169,7 @@ input, textarea, select {
   --choco-font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
-/* Per-theme glow colors */
+/* Per-theme glow colors — applied dynamically via inline style */
 .choco-hero[data-theme="snow-white"]     { --theme-glow: rgba(255, 248, 230, 0.10); }
 .choco-hero[data-theme="butter-delight"] { --theme-glow: rgba(200, 165, 80, 0.12); }
 .choco-hero[data-theme="candy-crush"]    { --theme-glow: rgba(255, 120, 180, 0.12); }
@@ -1181,7 +1181,7 @@ input, textarea, select {
 .choco-hero {
   position: relative;
   width: 100%;
-  height: 100vh;
+  min-height: 100vh;
   background: var(--choco-bg-deep);
   overflow: hidden;
   display: flex;
@@ -1190,54 +1190,17 @@ input, textarea, select {
   color: var(--choco-fg);
 }
 
-/* ---------- Full-bleed background image + faded overlay (covers the whole page) ---------- */
-.choco-hero-bg {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  overflow: hidden;
-}
-
-.choco-hero-slide {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0;
-  transform: scale(1.02);
-  transition: opacity 700ms ease, transform 1200ms ease;
-  pointer-events: none;
-}
-
-.choco-hero-slide.active {
-  opacity: 1;
-  transform: scale(1);
-  pointer-events: auto;
-}
-
-.choco-hero-slide img {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  filter: drop-shadow(0 20px 60px rgba(0,0,0,0.5));
-}
-
-/* Soft fade — image stays partially visible, text reads clearly above it */
-.choco-hero-overlay {
+/* Radial vignette circles */
+.choco-hero::before {
+  content: '';
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(
-      180deg,
-      rgba(15, 10, 6, 0.35) 0%,
-      rgba(15, 10, 6, 0.25) 35%,
-      rgba(15, 10, 6, 0.55) 70%,
-      rgba(15, 10, 6, 0.78) 100%
-    );
+    radial-gradient(ellipse 60% 50% at 50% 50%, transparent 40%, var(--choco-bg-deep) 100%),
+    radial-gradient(circle 400px at 30% 40%, var(--theme-glow, rgba(200,160,80,0.08)) 0%, transparent 70%),
+    radial-gradient(circle 300px at 70% 60%, var(--theme-glow, rgba(200,160,80,0.06)) 0%, transparent 70%);
   pointer-events: none;
+  z-index: 0;
 }
 
 /* ---------- Chocolate Top Bar ---------- */
@@ -1248,7 +1211,7 @@ input, textarea, select {
   align-items: center;
   justify-content: space-between;
   padding: 16px 40px;
-   background: rgba(15, 10, 6, 0.6);
+  background: rgba(15, 10, 6, 0.6);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--choco-border);
@@ -1300,16 +1263,16 @@ input, textarea, select {
   transform: translateY(-1px);
 }
 
-/* ---------- Hero Main Area (overlays the full-bleed image) ---------- */
+/* ---------- Hero Main Area ---------- */
 .choco-hero-main {
   position: relative;
   z-index: 2;
   flex: 1;
   display: grid;
-  grid-template-columns: 140px 1fr 420px;
+  grid-template-columns: 140px 1fr 400px;
   gap: 0;
   align-items: stretch;
-  padding: 8px 0 0;
+  padding: 0;
 }
 
 /* ---------- Left Thumbnail Strip ---------- */
@@ -1318,15 +1281,10 @@ input, textarea, select {
   z-index: 5;
   display: flex;
   flex-direction: column;
-  align-items: center;
   justify-content: center;
-  gap: 10px;
+  align-items: center;
+  gap: 8px;
   padding: 0 12px 0 24px;
-  background: linear-gradient(
-    90deg,
-    rgba(15, 10, 6, 0.55) 0%,
-    rgba(15, 10, 6, 0.0) 100%
-  );
 }
 
 .choco-thumb-arrow {
@@ -1418,115 +1376,86 @@ input, textarea, select {
   opacity: 1;
 }
 
-/* ---------- Center — empty spacer (the real image is in choco-hero-bg) ---------- */
+/* ---------- Background Hero Image ---------- */
+.choco-hero-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: var(--choco-bg-deep);
+}
+
+.choco-hero-slide {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 800ms ease;
+  pointer-events: none;
+}
+
+.choco-hero-slide.active {
+  opacity: 0.85;
+  pointer-events: auto;
+}
+
+.choco-hero-slide img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.choco-hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to right, transparent 50%, rgba(15, 10, 6, 0.5) 100%);
+  pointer-events: none;
+}
+
+/* ---------- Center — Empty Spacer ---------- */
 .choco-center {
   position: relative;
-  height: 100%;
+  pointer-events: none;
 }
 
-.choco-hero-image-wrap {
-  display: none;
-}
-
-/* Script title overlay */
-.choco-hero-title {
-  position: absolute;
-  top: 8%;
-  left: 50%;
-  transform: translateX(-50%);
-  font-family: var(--choco-font-script);
-  font-size: clamp(3rem, 6vw, 5.5rem);
-  font-weight: 700;
-  font-style: italic;
-  color: var(--choco-fg);
-  text-shadow: 0 4px 32px rgba(0,0,0,0.6), 0 2px 8px rgba(0,0,0,0.4);
-  text-align: center;
-  line-height: 1.1;
-  white-space: nowrap;
-  z-index: 3;
-  opacity: 0;
-  animation: choco-title-in 600ms ease forwards;
-}
-
-.choco-hero-slide.active .choco-hero-title {
-  opacity: 1;
-}
-
-@keyframes choco-title-in {
-  from { opacity: 0; transform: translateX(-50%) translateY(20px); }
-  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
-}
-
-/* ---------- Right Info Panel (sits above the full-bleed image) ---------- */
+/* ---------- Right Info Panel ---------- */
 .choco-info-col {
   position: relative;
   z-index: 5;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: 32px 40px 48px 20px;
-  gap: 18px;
+  padding: 40px;
+  gap: 24px;
+  background: rgba(15, 10, 6, 0.45);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-left: 1px solid var(--choco-border);
 }
 
-/* Subtle frosted card behind the text so it stays legible while the image shows through */
-.choco-info-content {
-  position: relative;
-  padding: 26px 28px;
-  border-radius: 14px;
-  background: linear-gradient(
-    180deg,
-    rgba(15, 10, 6, 0.55) 0%,
-    rgba(15, 10, 6, 0.70) 100%
-  );
-  border: 1px solid rgba(200, 160, 80, 0.18);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  box-shadow: 0 18px 60px rgba(0,0,0,0.45);
-  opacity: 0;
-  transform: translateY(12px);
-  transition: opacity 500ms ease, transform 500ms ease;
-}
-.choco-info-content.visible {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-/* Stylish, italic, curved theme name sitting above the description */
 .choco-theme-name {
   font-family: var(--choco-font-script);
-  font-size: clamp(2.6rem, 4.6vw, 3.8rem);
+  font-size: clamp(3rem, 4.5vw, 5rem);
   font-weight: 700;
   font-style: italic;
-  color: var(--choco-fg);
-  line-height: 1;
-  letter-spacing: 0.01em;
-  /* curved/leaning look */
-  transform: skewX(-6deg) rotate(-1.5deg);
-  transform-origin: left center;
-  text-shadow:
-    0 2px 12px rgba(0,0,0,0.55),
-    0 0 24px rgba(200, 160, 80, 0.18);
-  background: linear-gradient(
-    135deg,
-    var(--choco-fg) 0%,
-    var(--choco-primary-light) 50%,
-    var(--choco-fg) 100%
-  );
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  margin-bottom: 4px;
+  color: var(--choco-primary-light);
+  text-shadow: 0 4px 16px rgba(0,0,0,0.6);
+  line-height: 1.1;
+  transform: rotate(-3deg);
+  text-align: left;
 }
 
 .choco-theme-subtitle {
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 600;
-  letter-spacing: 0.18em;
+  color: var(--choco-fg);
   text-transform: uppercase;
-  color: var(--choco-primary);
-  margin-top: -2px;
-  margin-bottom: 8px;
+  letter-spacing: 0.1em;
+  margin-top: 8px;
+  padding-left: 8px;
 }
+
 /* Specs row */
 .choco-specs {
   display: flex;
@@ -1728,11 +1657,9 @@ input, textarea, select {
   .hero-title { font-size: 2rem; }
 
   /* Chocolate hero responsive */
-  
-
   .choco-hero-main {
     grid-template-columns: 1fr;
-      grid-template-rows: auto 1fr;
+    grid-template-rows: auto auto;
     padding: 0;
   }
 
@@ -1741,17 +1668,16 @@ input, textarea, select {
   }
 
   .choco-center {
-      display: none;
+    height: 55vh;
   }
 
- .choco-hero-title {
+  .choco-hero-title {
     font-size: clamp(2rem, 8vw, 3rem);
   }
 
-   .choco-info-col {
+  .choco-info-col {
     padding: 24px 20px 16px;
-      align-items: stretch;
-    }
+  }
 
   .choco-nav-arrow {
     width: 38px;
@@ -1781,9 +1707,9 @@ input, textarea, select {
   }
 
   .choco-cart-row {
-      flex-direction: column;
-    }
-    .choco-atc-btn {
-      width: 100%;
-    }
+    flex-direction: column;
   }
+  .choco-atc-btn {
+    width: 100%;
+  }
+}

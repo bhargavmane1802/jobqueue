@@ -147,13 +147,13 @@ export default function Landing() {
           <button className="choco-thumb-arrow" onClick={() => goTo(activeIndex - 1)} aria-label="Previous thumbnail">
             <ChevronUp size={18} />
           </button>
-
+          
           <div className="choco-thumb-list">
             {thumbIndices.map((tIdx) => {
               const t = THEMES[tIdx]
               return (
                 <div
-                  key={t.id + '-' + tIdx}
+                  key={t.id}
                   className={`choco-thumb-item${tIdx === activeIndex ? ' active' : ''}`}
                   onClick={() => goTo(tIdx)}
                 >

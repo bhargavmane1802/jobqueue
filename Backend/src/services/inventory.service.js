@@ -11,8 +11,8 @@ const inventoryService=async(productId,quantity)=> {
   }
     return { reserved: quantity, productId };
 }
-const inventoryCheck = async (buyerId) => {
-  const result = await query(
+const inventoryCheck = async (buyerId,client) => {
+  const result = await client.query(
     `
     WITH cart AS (
       SELECT

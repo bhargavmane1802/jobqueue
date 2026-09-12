@@ -1,8 +1,8 @@
 import { query } from "../config/database.js";
 import { deadQueue } from "../queues/dead.queue.js";
-const createItems = async (customerId, cost, inventory) => {
+const createItems = async (customerId, cost, inventory,client) => {
   try {
-    const orderResult = await query(
+    const orderResult = await client.query(
       `INSERT INTO orders (customer_id, total_cost,status)
        VALUES ($1, $2,$3)
        RETURNING id`,
@@ -29,7 +29,7 @@ const createItems = async (customerId, cost, inventory) => {
       );
     });
 
-    await query(
+    await client.query(
       `INSERT INTO order_items
        (order_id, product_id, quantity, price)
        VALUES ${placeholders.join(", ")}`,

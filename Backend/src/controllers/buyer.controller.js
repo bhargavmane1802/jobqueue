@@ -51,7 +51,7 @@ export const addToCart=async (req,res,next)=>{
             VALUES ($1, $2, $3)
             ON CONFLICT (buyer_id, product_id)
             DO UPDATE
-            SET quantity = $3
+            SET quantity = $3 + cart_items.quantity
             `,
             [id, productId, quantity]
         );
