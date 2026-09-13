@@ -10,20 +10,32 @@ export default function ProductListing() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [cartCount, setCartCount] = useState(0)
+  const [page, setPage] = useState(1)
+  const [pagination, setPagination] = useState(null)
+
+  useEffect(() => {
+    fetchCartCount()
+  }, [])
 
   useEffect(() => {
     fetchProducts()
-    fetchCartCount()
-  }, [])
+  }, [page])
 
   const fetchProducts = async () => {
     setLoading(true)
     try {
-      const { data } = await getProducts()
-      setProducts(data.products || data || [])
+      const { data } = await getProducts(page)
+      if (data.pagination) {
+        setProducts(data.products)
+        setPagination(data.pagination)
+      } else {
+        setProducts(data.products || data || [])
+        setPagination(null)
+      }
     } catch (err) {
       console.error('Failed to fetch products', err)
       setProducts([])
+      setPagination(null)
     } finally {
       setLoading(false)
     }
@@ -75,6 +87,28 @@ export default function ProductListing() {
           </div>
 
           <ProductGrid products={filtered} loading={loading} />
+
+          {pagination && pagination.totalPages > 1 && (
+            <div style={{ display: 'flex', justifyContent: 'center', marginTop: '32px', gap: '12px' }}>
+              <button 
+                className="btn btn-secondary" 
+                disabled={!pagination.hasPreviousPage}
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+              >
+                Previous
+              </button>
+              <div style={{ display: 'flex', alignItems: 'center', fontSize: '14px', color: 'var(--text-secondary)' }}>
+                Page {pagination.currentPage} of {pagination.totalPages}
+              </div>
+              <button 
+                className="btn btn-secondary" 
+                disabled={!pagination.hasNextPage}
+                onClick={() => setPage(p => p + 1)}
+              >
+                Next
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

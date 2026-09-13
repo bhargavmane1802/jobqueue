@@ -1,12 +1,29 @@
 import { query } from "../config/database.js";
 import { createPayment } from "../models/payment.model.js";
 import { payment } from "../services/payment.service.js";
-
 export const displayProducts=async(req,res,next)=>{
     try{
-      const products=await query('select id,title,description,product_images,price from products');
-      if(products.rows.length==0)return res.status(404).json({message:'404 no product found '});
-      return res.status(200).json({products:products.rows});
+        const page=Math.max(parseInt(req.query.page )||1,1);
+        const limit=Math.min(parseInt(req.query.limit)||20,100);
+        const offset=(page-1)*limit;
+
+      const [products,total]= await Promise.all([
+        query('select id,title,description,product_images,price from products ORDER BY id DESC limit $1 offset $2',[limit,offset]),
+        query('select count(*) from products')
+      ])
+      const totalProducts = Number(total.rows[0].count);
+    const totalPages = Math.ceil(totalProducts / limit);
+      return res.status(200).json({
+        products:products.rows,
+        pagination: {
+        currentPage: page,
+        perPage: limit,
+        totalProducts,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPreviousPage: page > 1
+      }
+    });
     }catch(err){
         console.log("displayProducts")
         next(err);
@@ -21,7 +38,6 @@ export const productDetails=async(req,res,next)=>{
                 message: "Product ID is required"
             });
         }
-
     const product =await query('select * from products where id=$1',[productId]);
     if(product.rows.length==0)return res.status(404).json({messsae:'Product Not found'});
     return res.status(200).json({product:product.rows[0]});
@@ -43,7 +59,6 @@ export const addToCart=async (req,res,next)=>{
                 message: "Quantity must be greater than 0",
             });
         }
-
         const {id}=req.user;
         await query(
             `
@@ -56,7 +71,6 @@ export const addToCart=async (req,res,next)=>{
             [id, productId, quantity]
         );
         return res.status(201).json({message:"added to  card"});
-
     } catch (error) {
         console.log("addToCart");
         next(error);

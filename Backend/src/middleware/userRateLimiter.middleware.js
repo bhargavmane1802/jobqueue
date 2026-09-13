@@ -12,7 +12,7 @@ export const registerLimiter = rateLimit({
     prefix: 'rl:register:', // Unique prefix for Redis keys
   }),
   windowMs: 60 * 60 * 1000, 
-  max: 5, 
+  max: 10, 
   message: { message: "Too many registration attempts, please try again after an hour" },
   standardHeaders: true,
   legacyHeaders: false,
