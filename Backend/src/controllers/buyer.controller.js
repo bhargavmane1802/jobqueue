@@ -1,6 +1,8 @@
 import { query } from "../config/database.js";
 import { createPayment } from "../models/payment.model.js";
 import { payment } from "../services/payment.service.js";
+import { displayComments } from "./comments.controller.js";
+
 export const displayProducts=async(req,res,next)=>{
     try{
         const page=Math.max(parseInt(req.query.page )||1,1);
@@ -40,7 +42,8 @@ export const productDetails=async(req,res,next)=>{
         }
     const product =await query('select * from products where id=$1',[productId]);
     if(product.rows.length==0)return res.status(404).json({messsae:'Product Not found'});
-    return res.status(200).json({product:product.rows[0]});
+    const comments =await displayComments(productId);
+    return res.status(200).json({product:product.rows[0],comments});
   } catch (error) {
     console.log("productDetails")
     next(error);

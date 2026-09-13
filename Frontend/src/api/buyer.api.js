@@ -3,6 +3,7 @@ import api from './axios'
 // Products
 export const getProducts = (page = 1, limit = 20) => api.get(`/auth/buyer/home/products?page=${page}&limit=${limit}`)
 export const getProductDetail = (productId) => api.get(`/auth/buyer/home/product/${productId}`)
+export const addComment = (product_id, user_id, comment) => api.post(`/auth/buyer/home/product/addComment`, { product_id, user_id, comment })
 
 // Cart
 export const getCart = () => api.get('/auth/buyer/cart/getcart')

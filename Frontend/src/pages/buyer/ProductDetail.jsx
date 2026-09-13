@@ -3,24 +3,29 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft, ShoppingCart, Package, Star, Zap, CreditCard, ExternalLink } from 'lucide-react'
 import toast from 'react-hot-toast'
 import BuyerNavbar from '../../components/layout/BuyerNavbar'
-import { getProductDetail, addToCart, buySingleProduct } from '../../api/buyer.api'
-
+import { getProductDetail, addToCart, buySingleProduct, addComment } from '../../api/buyer.api'
+import { useAuth } from '../../context/AuthContext'
 const EMOJIS = ['🖥️', '📱', '👟', '📷', '🎮', '⌚', '🎧', '💼']
 
 export default function ProductDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
   const [product, setProduct] = useState(null)
+  const [comments, setComments] = useState([])
+  const [newComment, setNewComment] = useState('')
+  const [submittingComment, setSubmittingComment] = useState(false)
   const [loading, setLoading] = useState(true)
   const [quantity, setQuantity] = useState(1)
   const [adding, setAdding] = useState(false)
   const [buying, setBuying] = useState(false)
+  const { user } = useAuth()
 
   useEffect(() => {
     const fetchProduct = async () => {
       try {
         const { data } = await getProductDetail(id)
         setProduct(data.product || data)
+        setComments(data.comments?.comments || data.comments || [])
       } catch (err) {
         toast.error('Product not found')
         navigate('/buyer/home')
@@ -78,6 +83,34 @@ export default function ProductDetail() {
       toast.error(msg)
     } finally {
       setBuying(false)
+    }
+  }
+
+  const handleAddComment = async (e) => {
+    e.preventDefault()
+    if (!newComment.trim()) return
+    if (!user) {
+      toast.error('Please login to add a comment')
+      return
+    }
+    
+    setSubmittingComment(true)
+    try {
+      const { data } = await addComment(product.id, user.id, newComment)
+      // Assuming backend returns { result: { text: "...", user_id: "...", ... } }
+      const addedComment = data.result || { comment: newComment, text: newComment, user_id: user.id, username: user.username }
+      // Push the new comment to the top of the list
+      setComments([{ 
+        ...addedComment, 
+        comment: addedComment.comment || addedComment.text || newComment,
+        username: addedComment.username || user.username 
+      }, ...comments])
+      setNewComment('')
+      toast.success('Comment added successfully!')
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to add comment')
+    } finally {
+      setSubmittingComment(false)
     }
   }
 
@@ -313,6 +346,170 @@ export default function ProductDetail() {
 
             </div>
           </div>
+
+          {/* ── Comments Section ───────────────────────────────────── */}
+          <div style={{ marginTop: '72px', borderTop: '1px solid var(--border)', paddingTop: '48px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '32px' }}>
+              <div style={{ 
+                background: 'rgba(124, 92, 252, 0.1)', 
+                padding: '10px', 
+                borderRadius: '12px',
+                display: 'flex'
+              }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent-light)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                </svg>
+              </div>
+              <h2 style={{ fontSize: '28px', fontWeight: 800, margin: 0, letterSpacing: '-0.02em' }}>
+                Reviews & Comments <span style={{ fontSize: '18px', color: 'var(--text-muted)', fontWeight: 500 }}>({comments.length})</span>
+              </h2>
+            </div>
+
+            {/* Comments List */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginBottom: '40px' }}>
+              {comments.length > 0 ? (
+                comments.map((c, idx) => (
+                  <div key={idx} className="fade-in" style={{
+                    padding: '24px',
+                    background: 'var(--bg-card)',
+                    borderRadius: '16px',
+                    border: '1px solid var(--border)',
+                    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)',
+                    position: 'relative'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '16px' }}>
+                      <div style={{
+                        width: '48px',
+                        height: '48px',
+                        borderRadius: '50%',
+                        background: 'linear-gradient(135deg, var(--accent-light) 0%, var(--accent-dark) 100%)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontWeight: '700',
+                        color: 'white',
+                        fontSize: '18px',
+                        boxShadow: '0 2px 8px rgba(124, 92, 252, 0.3)',
+                        flexShrink: 0
+                      }}>
+                        {(c.username?.[0] || 'U').toUpperCase()}
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                          <h4 style={{ fontWeight: 700, fontSize: '16px', margin: 0 }}>{c.username || 'Anonymous User'}</h4>
+                          {/* If backend adds timestamps in future, they can go here */}
+                          <div style={{ display: 'flex', gap: '2px' }}>
+                            {[...Array(5)].map((_, i) => (
+                              <Star key={i} size={12} fill="var(--warning)" stroke="none" style={{ opacity: 0.8 }} />
+                            ))}
+                          </div>
+                        </div>
+                        <p style={{ color: 'var(--text-secondary)', lineHeight: 1.7, margin: 0, fontSize: '15px' }}>
+                          {c.comment || c.text}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div style={{ 
+                  textAlign: 'center', 
+                  padding: '48px 24px',
+                  background: 'rgba(255,255,255,0.02)',
+                  borderRadius: '16px',
+                  border: '1px dashed var(--border-accent)'
+                }}>
+                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" style={{ margin: '0 auto 16px', opacity: 0.5 }}>
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <path d="M8 15h8"></path>
+                    <path d="M9 9h.01"></path>
+                    <path d="M15 9h.01"></path>
+                  </svg>
+                  <h3 style={{ fontSize: '18px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>No comments yet</h3>
+                  <p style={{ color: 'var(--text-muted)', margin: 0 }}>Be the first to share your thoughts about this product!</p>
+                </div>
+              )}
+            </div>
+            
+            {/* Add Comment Form */}
+            <div style={{ 
+              background: 'var(--bg-card)', 
+              borderRadius: '20px', 
+              padding: '32px',
+              border: '1px solid var(--border)',
+              boxShadow: '0 10px 40px rgba(0, 0, 0, 0.08)',
+              position: 'relative',
+              overflow: 'hidden'
+            }}>
+              <div style={{ 
+                position: 'absolute', top: 0, left: 0, right: 0, height: '4px',
+                background: 'linear-gradient(90deg, var(--accent-light), var(--accent-dark))'
+              }} />
+              
+              <h3 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                Leave your review
+              </h3>
+              
+              <form onSubmit={handleAddComment} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <textarea 
+                  value={newComment}
+                  onChange={(e) => setNewComment(e.target.value)}
+                  placeholder="What did you like or dislike? How did this product meet your expectations?"
+                  style={{
+                    width: '100%',
+                    background: 'rgba(255, 255, 255, 0.03)',
+                    border: '1px solid var(--border-accent)',
+                    borderRadius: '12px',
+                    padding: '20px',
+                    color: 'var(--text-primary)',
+                    minHeight: '120px',
+                    resize: 'vertical',
+                    fontFamily: 'inherit',
+                    fontSize: '15px',
+                    lineHeight: 1.6,
+                    transition: 'all 0.2s ease',
+                    outline: 'none'
+                  }}
+                  onFocus={(e) => e.target.style.background = 'rgba(255, 255, 255, 0.05)'}
+                  onBlur={(e) => e.target.style.background = 'rgba(255, 255, 255, 0.03)'}
+                />
+                
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+                    Your review will be posted publicly.
+                  </span>
+                  <button 
+                    type="submit" 
+                    className="btn btn-primary" 
+                    disabled={!newComment.trim() || submittingComment}
+                    style={{ 
+                      padding: '12px 28px',
+                      borderRadius: '99px',
+                      fontWeight: 700,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px'
+                    }}
+                  >
+                    {submittingComment ? (
+                      <>
+                        <span style={{
+                          width: 14, height: 14,
+                          border: '2px solid rgba(255,255,255,0.3)',
+                          borderTopColor: 'white', borderRadius: '50%',
+                          animation: 'spin 0.6s linear infinite',
+                        }} />
+                        Posting...
+                      </>
+                    ) : (
+                      'Post Review'
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+
         </div>
       </div>
 
