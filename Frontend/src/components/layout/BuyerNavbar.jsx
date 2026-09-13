@@ -17,7 +17,7 @@ export default function BuyerNavbar({ cartCount = 0 }) {
     <nav className="navbar">
       <div className="container navbar-inner">
         <Link to="/buyer/home" className="navbar-logo">
-          DreamBite<span>.store</span>
+          Mr.Mine<span>.store</span>
         </Link>
 
         <div className="navbar-links">
