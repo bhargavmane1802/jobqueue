@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, ShoppingCart, Package, Star, Zap, CreditCard, ExternalLink } from 'lucide-react'
+import { ArrowLeft, ShoppingCart, Package, Star, Zap, CreditCard, ExternalLink, Edit2, Trash2, X, Check } from 'lucide-react'
 import toast from 'react-hot-toast'
 import BuyerNavbar from '../../components/layout/BuyerNavbar'
-import { getProductDetail, addToCart, buySingleProduct, addComment } from '../../api/buyer.api'
+import { getProductDetail, addToCart, buySingleProduct, addComment, updateComment, deleteComment } from '../../api/buyer.api'
 import { useAuth } from '../../context/AuthContext'
 const EMOJIS = ['🖥️', '📱', '👟', '📷', '🎮', '⌚', '🎧', '💼']
 
@@ -14,6 +14,8 @@ export default function ProductDetail() {
   const [comments, setComments] = useState([])
   const [newComment, setNewComment] = useState('')
   const [submittingComment, setSubmittingComment] = useState(false)
+  const [editingCommentId, setEditingCommentId] = useState(null)
+  const [editingCommentText, setEditingCommentText] = useState('')
   const [loading, setLoading] = useState(true)
   const [quantity, setQuantity] = useState(1)
   const [adding, setAdding] = useState(false)
@@ -97,9 +99,7 @@ export default function ProductDetail() {
     setSubmittingComment(true)
     try {
       const { data } = await addComment(product.id, user.id, newComment)
-      // Assuming backend returns { result: { text: "...", user_id: "...", ... } }
-      const addedComment = data.result || { comment: newComment, text: newComment, user_id: user.id, username: user.username }
-      // Push the new comment to the top of the list
+      const addedComment = data.result || { comment: newComment, text: newComment, user_id: user.id, username: user.username, id: Date.now() }
       setComments([{ 
         ...addedComment, 
         comment: addedComment.comment || addedComment.text || newComment,
@@ -111,6 +111,31 @@ export default function ProductDetail() {
       toast.error(err.response?.data?.message || 'Failed to add comment')
     } finally {
       setSubmittingComment(false)
+    }
+  }
+
+  const handleDeleteComment = async (commentId) => {
+    if (!window.confirm('Are you sure you want to delete this comment?')) return
+    try {
+      await deleteComment(commentId)
+      setComments(comments.filter(c => c.id !== commentId))
+      toast.success('Comment deleted')
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to delete comment')
+    }
+  }
+
+  const handleUpdateComment = async (commentId) => {
+    if (!editingCommentText.trim()) return
+    try {
+      await updateComment(commentId, editingCommentText)
+      setComments(comments.map(c => 
+        c.id === commentId ? { ...c, comment: editingCommentText, text: editingCommentText } : c
+      ))
+      setEditingCommentId(null)
+      toast.success('Comment updated')
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to update comment')
     }
   }
 
@@ -369,7 +394,7 @@ export default function ProductDetail() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginBottom: '40px' }}>
               {comments.length > 0 ? (
                 comments.map((c, idx) => (
-                  <div key={idx} className="fade-in" style={{
+                  <div key={c.id || idx} className="fade-in" style={{
                     padding: '24px',
                     background: 'var(--bg-card)',
                     borderRadius: '16px',
@@ -396,7 +421,27 @@ export default function ProductDetail() {
                       </div>
                       <div style={{ flex: 1 }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                          <h4 style={{ fontWeight: 700, fontSize: '16px', margin: 0 }}>{c.username || 'Anonymous User'}</h4>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <h4 style={{ fontWeight: 700, fontSize: '16px', margin: 0 }}>{c.username || 'Anonymous User'}</h4>
+                            {c.user_id === user?.id && editingCommentId !== c.id && (
+                              <div style={{ display: 'flex', gap: '8px' }}>
+                                <button 
+                                  onClick={() => { setEditingCommentId(c.id); setEditingCommentText(c.comment || c.text) }}
+                                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 0 }}
+                                  title="Edit comment"
+                                >
+                                  <Edit2 size={14} />
+                                </button>
+                                <button 
+                                  onClick={() => handleDeleteComment(c.id)}
+                                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)', padding: 0 }}
+                                  title="Delete comment"
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </div>
+                            )}
+                          </div>
                           {/* If backend adds timestamps in future, they can go here */}
                           <div style={{ display: 'flex', gap: '2px' }}>
                             {[...Array(5)].map((_, i) => (
@@ -404,9 +449,49 @@ export default function ProductDetail() {
                             ))}
                           </div>
                         </div>
-                        <p style={{ color: 'var(--text-secondary)', lineHeight: 1.7, margin: 0, fontSize: '15px' }}>
-                          {c.comment || c.text}
-                        </p>
+                        {editingCommentId === c.id ? (
+                          <div style={{ marginTop: '12px' }}>
+                            <textarea 
+                              value={editingCommentText}
+                              onChange={(e) => setEditingCommentText(e.target.value)}
+                              style={{
+                                width: '100%',
+                                background: 'rgba(255, 255, 255, 0.03)',
+                                border: '1px solid var(--border-accent)',
+                                borderRadius: '8px',
+                                padding: '12px',
+                                color: 'var(--text-primary)',
+                                minHeight: '80px',
+                                resize: 'vertical',
+                                fontFamily: 'inherit',
+                                fontSize: '14px',
+                                marginBottom: '12px',
+                                outline: 'none'
+                              }}
+                            />
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                              <button 
+                                onClick={() => handleUpdateComment(c.id)}
+                                className="btn btn-primary"
+                                style={{ padding: '6px 16px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '4px' }}
+                                disabled={!editingCommentText.trim()}
+                              >
+                                <Check size={14} /> Save
+                              </button>
+                              <button 
+                                onClick={() => setEditingCommentId(null)}
+                                className="btn btn-secondary"
+                                style={{ padding: '6px 16px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '4px' }}
+                              >
+                                <X size={14} /> Cancel
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <p style={{ color: 'var(--text-secondary)', lineHeight: 1.7, margin: 0, fontSize: '15px' }}>
+                            {c.comment || c.text}
+                          </p>
+                        )}
                       </div>
                     </div>
                   </div>

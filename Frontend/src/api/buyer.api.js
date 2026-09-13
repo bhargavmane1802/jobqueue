@@ -4,6 +4,8 @@ import api from './axios'
 export const getProducts = (page = 1, limit = 20) => api.get(`/auth/buyer/home/products?page=${page}&limit=${limit}`)
 export const getProductDetail = (productId) => api.get(`/auth/buyer/home/product/${productId}`)
 export const addComment = (product_id, user_id, comment) => api.post(`/auth/buyer/home/product/addComment`, { product_id, user_id, comment })
+export const updateComment = (id, comment) => api.put(`/auth/buyer/home/product/updateComment`, { id, comment })
+export const deleteComment = (id) => api.delete(`/auth/buyer/home/product/deleteComment`, { data: { id } })
 
 // Cart
 export const getCart = () => api.get('/auth/buyer/cart/getcart')
