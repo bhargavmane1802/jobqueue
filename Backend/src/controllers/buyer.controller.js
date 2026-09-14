@@ -2,7 +2,7 @@ import { query } from "../config/database.js";
 import { createPayment } from "../models/payment.model.js";
 import { payment } from "../services/payment.service.js";
 import { displayComments } from "./comments.controller.js";
-
+import { trace } from "../log/trace.js";
 export const displayProducts=async(req,res,next)=>{
     try{
         const page=Math.max(parseInt(req.query.page )||1,1);
