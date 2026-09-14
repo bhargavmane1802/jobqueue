@@ -13,6 +13,7 @@
   "dependencies": {
     "bcrypt": "^6.0.0",
     "cloudinary": "^2.10.0",
+    "kafkajs": "^2.2.4",
     "nanoid": "^5.1.11"
   }
 }

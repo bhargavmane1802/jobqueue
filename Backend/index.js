@@ -13,7 +13,7 @@ import { paymentQueue } from "./src/queues/payment.queue.js";
 import { cartRouter } from "./src/routes/cart.router.js";
 import { buyerRouter } from "./src/routes/buyer.router.js";
 import { profileRouter } from "./src/routes/profile.router.js";
-
+import {trace} from "./src/log/trace.js";
 const port =process.env.PORT;
 app.get("/",async(req,res)=>{
     await test();
@@ -29,6 +29,23 @@ app.use("/auth/buyer/order",order_router);
 app.use('/auth/buyer/cart',cartRouter);
 app.use("/auth/seller/",sellerRouter);
 
+app.get('/logs', async (req, res, next) => {
+
+    try {
+        const result = await query('SELECT * FROM logs');
+        return res.status(200).json({
+            logs: result.rows
+        });
+
+    } catch (err) {
+        console.log("LOG ERROR:", err);
+
+        return res.status(500).json({
+            message: "Failed to fetch logs"
+        });
+    }
+});
+
 app.get('/health/db', async (req, res) => {
   try {
     await query('SELECT 1');
@@ -37,6 +54,7 @@ app.get('/health/db', async (req, res) => {
     res.status(500).json({ db: 'error', message: err.message });
   }
 });
+
 app.get('/test',async (req,res,next)=>{
   const result =await deadQueue.getJobs();
   return res.status(200).json({result}); 
@@ -45,6 +63,21 @@ app.use((err,req,res,next)=>{
     console.log(err);
     res.status(500).json({message:"check logs"});
 })
-app.listen(port,()=>{
-    console.log(`Listining at ${port} `);
-})
+// app.listen(port,()=>{
+//     console.log(`Listining at ${port} `);
+// })
+
+
+async function startServer() { 
+  await trace.start();
+  app.listen(port, () => { console.log(`Listening at ${port}`); }); 
+} 
+
+  async function shutdown() { 
+    console.log("Shutting down application..."); 
+  await trace.stop();
+   process.exit(0); 
+  }
+  process.on("SIGINT", shutdown);
+  process.on("SIGTERM", shutdown); // Start everything 
+  startServer();
