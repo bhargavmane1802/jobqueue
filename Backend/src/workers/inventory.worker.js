@@ -1,20 +1,21 @@
 import { Worker } from "bullmq";
 import { redis } from "../utils/redis.js";
-import { query } from "../config/database.js";
+import { query,pool } from "../config/database.js";
 import { updateInventoryOrder } from "../services/inventory.service.js";
 import { deadQueue } from "../queues/dead.queue.js";
 import { emailQueue } from "../queues/email.queue.js";
 const inventoryWorker= new Worker('inventoryQueue',async(job)=>{
    if(job.name=='updateInventory'){
    const {orderId,userEmail}=job.data;
-   const products=await updateInventoryOrder(orderId);
+   const products=await updateInventoryOrder(orderId);// delete the reserved stocks exuivallent to the order quantity per product
    await emailQueue.add("orderCreated",{userEmail,products});
    return true;}
    if (job.name === 'cancelOrder') {
+      const client = await pool.connect();
       const { orderId,email } = job.data;
-      await query('BEGIN');
+      await client.query('BEGIN');
       try {
-         const result = await query(
+         const result = await client.query(
             `
             UPDATE orders
             SET status = 'cancelled'
@@ -24,13 +25,13 @@ const inventoryWorker= new Worker('inventoryQueue',async(job)=>{
             `,
             [orderId]
          );
-
+// agar update huaa hi nahi toh revert kyu kerna
          if (result.rowCount === 0) {
-            await query('ROLLBACK');
+            client.query('COMMIT');
             return true; // already processed
          }
 
-         const {rows} =await query(
+         const {rows} =await client.query(
             `
             UPDATE products p
             SET reserved_quantity =
@@ -44,12 +45,15 @@ const inventoryWorker= new Worker('inventoryQueue',async(job)=>{
             [orderId]
          );
 
-         await query('COMMIT');
+         await client.query('COMMIT');
          await emailQueue.add('orderCancelMail',{email,orderId,products:rows});
          return true;
       } catch (err) {
          await query('ROLLBACK');
          throw err;
+      }
+      finally{
+         client.release();
       }
    }
    if (job.name === 'cancelPendingOrder') {

@@ -1,8 +1,9 @@
-import { query } from "../config/database.js";
+import { query ,pool} from "../config/database.js";
 import { createPayment } from "../models/payment.model.js";
 import { payment } from "../services/payment.service.js";
 import { displayComments } from "./comments.controller.js";
 import { trace } from "../log/trace.js";
+import { paymentQueue } from "../queues/payment.queue.js";
 export const displayProducts=async(req,res,next)=>{
     try{
         const page=Math.max(parseInt(req.query.page )||1,1);
@@ -10,7 +11,7 @@ export const displayProducts=async(req,res,next)=>{
         const offset=(page-1)*limit;
 
       const [products,total]= await Promise.all([
-        query('select id,title,description,product_images,price from products ORDER BY id DESC limit $1 offset $2',[limit,offset]),
+        query('select id,title,description,product_images,price,seller_id from products ORDER BY id DESC limit $1 offset $2',[limit,offset]),
         query('select count(*) from products')
       ])
       const totalProducts = Number(total.rows[0].count);
@@ -51,10 +52,10 @@ export const productDetails=async(req,res,next)=>{
 }
 export const addToCart=async (req,res,next)=>{
     try {
-        const {productId,quantity}=req.body;
-        if (!productId) {
+        const {productId,quantity,seller_id}=req.body;
+        if (!productId || !seller_id) {
             return res.status(400).json({
-                message: "Product ID is required"
+                message: "Product ID or seller_id is required"
             });
         }
         if (!quantity || quantity <= 0) {
@@ -65,13 +66,13 @@ export const addToCart=async (req,res,next)=>{
         const {id}=req.user;
         await query(
             `
-            INSERT INTO cart_items (buyer_id, product_id, quantity)
-            VALUES ($1, $2, $3)
+            INSERT INTO cart_items (buyer_id, product_id, quantity,seller_id)
+            VALUES ($1, $2, $3 ,$4)
             ON CONFLICT (buyer_id, product_id)
             DO UPDATE
             SET quantity = $3 + cart_items.quantity
             `,
-            [id, productId, quantity]
+            [id, productId, quantity,seller_id]
         );
         return res.status(201).json({message:"added to  card"});
     } catch (error) {
@@ -81,12 +82,13 @@ export const addToCart=async (req,res,next)=>{
 }
 export const buySingleItem=async(req,res,next)=>{
     let transactionStarted = false;
+    const client = await pool.connect();
     try {
         const {id,email}=req.user;
-        const {productId,quantity}=req.body;
-        if (!productId) {
+        const {productId,quantity,seller_id}=req.body;
+        if (!productId || !seller_id) {
             return res.status(400).json({
-                message: "Product ID is required"
+                message: "Product ID and seller_id are required"
             });
         }
         if (!quantity || quantity <= 0) {
@@ -94,9 +96,9 @@ export const buySingleItem=async(req,res,next)=>{
                 message: "Quantity must be greater than 0",
             });
         }
-        await query('begin');
+        await client.query('begin');
         transactionStarted = true;
-        const inventory = await query(
+        const inventory = await client.query(
             `
             UPDATE products
             SET reserved_quantity = reserved_quantity + $1
@@ -115,20 +117,39 @@ export const buySingleItem=async(req,res,next)=>{
         throw new Error("insufficient stocks available");
         }
         const cost =inventory.rows[0].cost;
-        const order=await query('insert into orders (customer_id,total_cost,status) values ($1,$2,$3) returning id',[id,cost,'payment']);
-        const order_items=await query('insert into order_items (order_id,product_id,quantity,price) values ($1,$2,$3,$4)',[order.rows[0].id,productId,quantity,inventory.rows[0].price]);
-        const paymentId =await createPayment(order.rows[0].id,cost);
-        await query('commit');
+        const order=await client.query('insert into orders (customer_id,total_cost,status,seller_id) values ($1,$2,$3,$4) returning id',[id,cost,'payment',seller_id]);
+        const order_items=await client.query('insert into order_items (order_id,product_id,quantity,price) values ($1,$2,$3,$4)',[order.rows[0].id,productId,quantity,inventory.rows[0].price]);
+        const paymentId =await createPayment(order.rows[0].id,cost,client);// created payment with status pending
+        const session=await payment(inventory.rows ,order.rows[0].id ,email , id,paymentId);//created a stripe session
+        await updatePaymentSessionId(paymentId,client,session.stripeSessionId,session.stripePaymentIntentId)
+
+        await client.query('commit');
         transactionStarted = false;
-        const url=await payment(inventory.rows,order.rows[0].id,email,id);
+        await paymentQueue.add('PaymentExpireCheck',{
+                id:session.id,
+                paymentId
+            },
+            {
+                delay: 30 * 1000, // run after 5 minutes
+                attempts: 5,
+                backoff: {
+                type: 'exponential',
+                delay: 2000,
+                },
+
+                removeOnComplete: true,
+                removeOnFail: false,
+            }
+        )
     return res.status(201).json({
       orderId:order.rows[0].id,
       paymentId,
-      checkoutUrl:url
+      checkoutUrl:session.url
     });
     } catch (error) {
         console.log("buySingleItem");
         if(transactionStarted){await query("rollback");}
         next(error);
     }
+    finally { client.release(); }
 }

@@ -11,7 +11,7 @@ const inventoryService=async(productId,quantity)=> {
   }
     return { reserved: quantity, productId };
 }
-const inventoryCheck = async (buyerId,client) => {
+const inventoryCheck = async (buyerId,client,seller_id) => {
   const result = await client.query(
     `
     WITH cart AS (
@@ -24,8 +24,8 @@ const inventoryCheck = async (buyerId,client) => {
         p.reserved_quantity
       FROM cart_items ci
       JOIN products p
-        ON p.id = ci.product_id
-      WHERE ci.buyer_id = $1
+        ON p.id = ci.product_id 
+      WHERE ci.buyer_id = $1 and ci.seller_id=$2
       FOR UPDATE OF p
     ),
     unavailable AS (
@@ -56,7 +56,7 @@ const inventoryCheck = async (buyerId,client) => {
         '[]'::json
       ) AS unavailable;
     `,
-    [buyerId]
+    [buyerId,seller_id]
   );
 
   const { items, unavailable } = result.rows[0];

@@ -9,15 +9,15 @@ export const deleteComment = (id) => api.delete(`/auth/buyer/home/product/delete
 
 // Cart
 export const getCart = () => api.get('/auth/buyer/cart/getcart')
-export const addToCart = (productId, quantity) =>
-  api.post(`/auth/buyer/cart/addtocart/${productId}`, { productId, quantity })
+export const addToCart = (productId, quantity, seller_id) =>
+  api.post(`/auth/buyer/cart/addtocart/${productId}`, { productId, quantity, seller_id })
 export const updateCartItem = (productId, quantity) =>
   api.patch('/auth/buyer/cart/update/', { productId, quantity })
 export const removeCartItem = (productId) =>
   api.delete('/auth/buyer/cart/delete/', { data: { productId } })
-export const cartToOrder = () => api.post('/auth/buyer/cart/cartToOrder')
-export const buySingleProduct = (productId, quantity) =>
-  api.post('/auth/buyer/home/buyProduct', { productId, quantity })
+export const cartToOrder = (seller_id) => api.post('/auth/buyer/cart/cartToOrder', { seller_id })
+export const buySingleProduct = (productId, quantity, seller_id) =>
+  api.post('/auth/buyer/home/buyProduct', { productId, quantity, seller_id })
 
 // Orders
 export const getAllOrders = () => api.get('/auth/buyer/order/all')

@@ -19,9 +19,12 @@ const ORDER_STATUS = {
 }
 
 const PAYMENT_STATUS = {
-  pending:  { label: 'Payment Pending', cls: 'badge-pending'   },
-  paid:     { label: 'Paid',            cls: 'badge-completed' },
-  refunded: { label: 'Refunded',        cls: 'badge-failed'    },
+  pending:    { label: 'Payment Pending', cls: 'badge-pending'   },
+  paid:       { label: 'Paid',            cls: 'badge-completed' },
+  refunding:  { label: 'Refunding',       cls: 'badge-cancelling'},
+  refunded:   { label: 'Refunded',        cls: 'badge-failed'    },
+  cancelled:  { label: 'Cancelled',       cls: 'badge-failed'    },
+  failed:     { label: 'Failed',          cls: 'badge-failed'    },
 }
 
 export default function OrderCard({ order, onRefresh }) {
@@ -73,11 +76,11 @@ export default function OrderCard({ order, onRefresh }) {
   }
 
   // ── Decide which action button to show ────────────────────────────────────
-  //   • payment_status=pending → "Complete Payment" button
-  //   • order.status=shipment AND payment_status=paid → "Cancel" button
-  //   • anything else → no action button
-  const showPayButton    = order.payment_status === 'pending'
-  const showCancelButton = order.status === 'shipment' && order.payment_status === 'paid'
+  //   • order.status=shipment → "Cancel" and "Completed" buttons
+  //   • order.status=payment (or paid) → no buttons
+  const showPayButton    = order.payment_status === 'pending' && order.status !== 'payment' && order.status !== 'paid'
+  const showCancelButton = order.status === 'shipment'
+  const showCompletedButton = order.status === 'shipment'
 
   const isStruck = ['cancelled', 'refunded'].includes(order.status)
 
@@ -142,7 +145,7 @@ export default function OrderCard({ order, onRefresh }) {
 
         {/* Action buttons */}
         <div style={{ display: 'flex', gap: '8px' }}>
-          {/* COMPLETE PAYMENT — payment_status = pending */}
+          {/* COMPLETE PAYMENT */}
           {showPayButton && (
             <button
               className="btn btn-primary btn-sm"
@@ -171,7 +174,7 @@ export default function OrderCard({ order, onRefresh }) {
             </button>
           )}
 
-          {/* CANCEL — order.status = shipment + payment paid */}
+          {/* CANCEL */}
           {showCancelButton && (
             <button
               className="btn btn-danger btn-sm"
@@ -198,6 +201,22 @@ export default function OrderCard({ order, onRefresh }) {
               )}
             </button>
           )}
+
+          {/* COMPLETED */}
+          {showCompletedButton && (
+            <button
+              className="btn btn-success btn-sm"
+              onClick={() => {
+                toast.success('Order marked as completed.')
+                onRefresh?.()
+              }}
+              id={`complete-order-${order.orderid}`}
+              style={{ padding: '8px 16px', background: 'var(--success)', color: '#fff', border: 'none', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: '500' }}
+            >
+              <CheckCircle size={13} />
+              Completed
+            </button>
+          )}
         </div>
       </div>
 
@@ -221,6 +240,18 @@ export default function OrderCard({ order, onRefresh }) {
           borderRadius: '10px', fontSize: '12px', color: 'var(--text-muted)',
         }}>
           ⚡ Stock is reserved for your order. Complete payment to confirm.
+        </div>
+      )}
+
+      {order.status === 'shipment' && order.seller_phone_number && (
+        <div style={{
+          marginTop: '12px', padding: '12px 14px',
+          background: 'rgba(52, 211, 153, 0.06)', border: '1px solid rgba(52, 211, 153, 0.15)',
+          borderRadius: '10px', fontSize: '13px', color: 'var(--text-secondary)',
+        }}>
+          <div style={{ fontWeight: 600, color: 'var(--success)', marginBottom: '4px' }}>Seller Details (Ready for Pickup/Contact):</div>
+          <div>📞 Phone: {order.seller_phone_number}</div>
+          <div>🏢 Address: Block {order.seller_block_no}, Wing {order.seller_wing}, Room {order.seller_room_no}</div>
         </div>
       )}
 

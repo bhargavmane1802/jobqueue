@@ -1,12 +1,12 @@
 import { query } from "../config/database.js";
 import { deadQueue } from "../queues/dead.queue.js";
-const createItems = async (customerId, cost, inventory,client) => {
+const createItems = async (customerId, cost, inventory,client,seller_id) => {
   try {
     const orderResult = await client.query(
-      `INSERT INTO orders (customer_id, total_cost,status)
-       VALUES ($1, $2,$3)
+      `INSERT INTO orders (customer_id, total_cost,status,seller_id)
+       VALUES ($1, $2,$3,$4)
        RETURNING id`,
-      [customerId, cost,'payment']
+      [customerId, cost,'payment',seller_id]
     );
 
     const orderId = orderResult.rows[0].id;
@@ -66,6 +66,17 @@ const getOrderById=async(order_id)=>{
         return null;
     }
 }
+const updateOrderStatusShipment=async(order_id)=>{
+  try{
+        const {rows}=await query('UPDATE orders SET status=$1,updated_at=NOW() WHERE id=$2 AND status=$3 RETURNING *',['shipment',order_id,"payment"]);
+        if(rows.length==0){console.log('updateOrderStatusShipment failed');return false;}
+        return rows[0];
+    }
+    catch(err){
+      console.log("error at updateOrderStatusShipment");
+        throw err;
+    }
+}
 const updatestatuscancel=async(orderId)=>{
   try {
     const {rows}=await query(`update orders o set status=$1 from payments p where p.order_id=o.id and p.status=$2 and o.id=$3 and o.status=$4 returning p.id as pid`,['cancelling','pending',orderId,'payment']);// return payment id 
@@ -77,4 +88,4 @@ const updatestatuscancel=async(orderId)=>{
     throw error;
   }
 }
-export {createItems,getOrderById,updateOrder,updatestatuscancel};
+export {createItems,getOrderById,updateOrder,updatestatuscancel,updateOrderStatusShipment};

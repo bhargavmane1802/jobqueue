@@ -32,7 +32,7 @@ export const payment =async(inventory,orderId,email,id,paymentId)=>{
           paymentId:String(paymentId)
         }
       });
-      return session.url;
+      return session;
 
   } catch (error) {
     console.log("payment",error.message);
@@ -41,15 +41,18 @@ export const payment =async(inventory,orderId,email,id,paymentId)=>{
 }
 export const refundService=async(payment)=>{
   try {
+    console.log(payment);
     if(!payment)throw new Error ('MissingpaymentIdinService');
     let amount;
     if(payment.amount<200)amount=payment.amount;
     else amount=payment.amount-40;
     amount = Math.round(amount * 100);
     const refund = await stripe.refunds.create({
-      payment_intent: payment.stripepaymentintentid,
-      amount:amount,
-    });
+  payment_intent: payment.stripepaymentintentid,
+  amount,
+});
+console.log(refund.id);
+console.log(refund.status);
     return refund;
   } catch (error) {
     console.log("refundservice",error.message);

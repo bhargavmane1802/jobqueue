@@ -16,7 +16,7 @@ export default function ProductCard({ product, showAddToCart = true }) {
   const handleAddToCart = async (e) => {
     e.stopPropagation()
     try {
-      await addToCart(product.id, 1)
+      await addToCart(product.id, 1, product.seller_id)
       toast.success(`${product.title} added to cart!`)
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to add to cart')

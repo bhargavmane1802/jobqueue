@@ -7,9 +7,9 @@ import jwt from "jsonwebtoken";
 
 const register = async (req, res, next) => {
   try {
-    const { username, email, password, role } = req.body;
+    const { username, email, password, role,block_no,wing,room_no,phone_number } = req.body;
 
-    if (!username || !email || !password || !role)
+    if (!username || !email || !password || !role || !block_no || !wing || !room_no ||!phone_number )
       return res.status(400).json({ message: "insufficient information" });
 
     if (role !== "seller" && role !== "buyer")
@@ -30,7 +30,7 @@ const register = async (req, res, next) => {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
     // Store user data under namespaced key
-    await redis.set(`otp:${otp}`, JSON.stringify({ username, email, hashedPassword, role }));
+    await redis.set(`otp:${otp}`, JSON.stringify({ username, email, hashedPassword, role, block_no, wing, room_no, phone_number }));
     await redis.expire(`otp:${otp}`, 600);
     await emailQueue.add("OTP", { otp, email });
 
@@ -49,9 +49,7 @@ const verify = async (req, res, next) => {
 
     const data = await redis.get(`otp:${otp}`);
     if (!data) return res.status(404).json({ message: "OTP invalid or expired" });
-
-    const { username, email, hashedPassword, role } = JSON.parse(data);
-
+    const { username, email, hashedPassword, role, block_no,wing,room_no,phone_number }=JSON.parse(data);
     // Race-condition guard: check if user was created between OTP send and verify
     const { rows } = await query(
       "SELECT id FROM users WHERE username=$1 OR email=$2",
@@ -62,7 +60,7 @@ const verify = async (req, res, next) => {
       return res.status(409).json({ message: "User already exists" });
     }
 
-    await insertUser(username, hashedPassword, email, role);
+    await insertUser(username, hashedPassword, email, role,block_no,wing,room_no,phone_number);
     await redis.del(`otp:${otp}`);
 
     return res.status(201).json({ message: "User registered successfully" });
