@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
-import { UserPlus, User, Mail, Lock, Eye, EyeOff, ShoppingBag, Store } from 'lucide-react'
+import { UserPlus, User, Mail, Lock, Eye, EyeOff, ShoppingBag, Store, Phone, Building, Home, MapPin } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { register } from '../../api/auth.api'
 
 export default function Register() {
-  const [form, setForm] = useState({ username: '', email: '', password: '', role: 'buyer' })
+  const [form, setForm] = useState({ username: '', email: '', password: '', role: 'buyer', phone_number: '', block_no: '', wing: '', room_no: '' })
   const [showPass, setShowPass] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -14,7 +14,7 @@ export default function Register() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
-    if (!form.username || !form.email || !form.password) {
+    if (!form.username || !form.email || !form.password || !form.phone_number || !form.block_no || !form.wing || !form.room_no) {
       setError('Please fill in all fields')
       return
     }
@@ -103,6 +103,68 @@ export default function Register() {
                 onChange={update('email')}
                 id="register-email"
               />
+            </div>
+          </div>
+
+          <div className="input-group">
+            <label className="input-label">Phone Number</label>
+            <div className="input-wrapper">
+              <Phone size={15} className="input-icon" />
+              <input
+                className="input-field"
+                type="tel"
+                placeholder="Enter your phone number"
+                value={form.phone_number}
+                onChange={update('phone_number')}
+                id="register-phone"
+              />
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <div className="input-group" style={{ flex: 1 }}>
+              <label className="input-label">Block</label>
+              <div className="input-wrapper">
+                <Building size={15} className="input-icon" />
+                <input
+                  className="input-field"
+                  type="text"
+                  placeholder="e.g. A"
+                  value={form.block_no}
+                  onChange={update('block_no')}
+                  id="register-block"
+                />
+              </div>
+            </div>
+
+            <div className="input-group" style={{ flex: 1 }}>
+              <label className="input-label">Wing</label>
+              <div className="input-wrapper">
+                <MapPin size={15} className="input-icon" />
+                <input
+                  className="input-field"
+                  type="text"
+                  placeholder="e.g. East"
+                  value={form.wing}
+                  onChange={update('wing')}
+                  id="register-wing"
+                />
+              </div>
+            </div>
+
+            <div className="input-group" style={{ flex: 1 }}>
+              <label className="input-label">Room</label>
+              <div className="input-wrapper">
+                <Home size={15} className="input-icon" />
+                <input
+                  className="input-field"
+                  type="text"
+                  placeholder="e.g. 101"
+                  value={form.room_no}
+                  onChange={update('room_no')}
+                  id="register-room"
+                />
+              </div>
             </div>
           </div>
 

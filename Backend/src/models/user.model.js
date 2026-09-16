@@ -1,6 +1,6 @@
 import { query } from "../config/database.js";
-export const insertUser=async (username,password,email,role)=>{
-    try {const {rows}= await query('INSERT INTO users (username ,password, email, role) VALUES ($1, $2 ,$3 ,$4) RETURNING * ',[username,password,email,role]);
+export const insertUser=async (username,password,email,role,block_no,wing,room_no,phone_number)=>{
+    try {const {rows}= await query('INSERT INTO users (username ,password, email, role, block_no,wing, room_no, phone_number) VALUES ($1, $2 ,$3 ,$4,$5 ,$6 ,$7,$8) RETURNING * ',[username,password,email,role,block_no,wing,room_no,phone_number]);
     return rows[0];}
     catch(err){
         throw err;

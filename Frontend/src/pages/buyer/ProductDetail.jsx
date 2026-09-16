@@ -51,7 +51,7 @@ export default function ProductDetail() {
     }
     setAdding(true)
     try {
-      await addToCart(product.id, quantity)
+      await addToCart(product.id, quantity, product.seller_id)
       toast.success(`Added ${quantity}× ${product.title} to cart!`)
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to add to cart')
@@ -68,7 +68,7 @@ export default function ProductDetail() {
     setBuying(true)
     const loadingToast = toast.loading('Reserving stock & creating order...')
     try {
-      const { data } = await buySingleProduct(product.id, quantity)
+      const { data } = await buySingleProduct(product.id, quantity, product.seller_id)
       toast.dismiss(loadingToast)
       toast.success('Order created! Redirecting to payment...')
       // Small delay so user sees the toast before redirect

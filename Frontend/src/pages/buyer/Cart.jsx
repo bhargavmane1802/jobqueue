@@ -9,15 +9,21 @@ import { getCart, cartToOrder } from '../../api/buyer.api'
 export default function Cart() {
   const [items, setItems]         = useState([])
   const [loading, setLoading]     = useState(true)
-  const [checkingOut, setCheckingOut] = useState(false)
+  const [checkingOut, setCheckingOut] = useState(null)
   const navigate = useNavigate()
 
   // ── Total derived from local items state — no separate totalCost state ─────
   // This means it updates instantly whenever qty changes, with zero extra renders
-  const totalCost = useMemo(
-    () => items.reduce((sum, item) => sum + item.price * item.quantity, 0),
-    [items]
-  )
+  const groupedItems = useMemo(() => {
+    return items.reduce((acc, item) => {
+      if (!acc[item.seller_id]) {
+        acc[item.seller_id] = { seller_id: item.seller_id, items: [], totalCost: 0 };
+      }
+      acc[item.seller_id].items.push(item);
+      acc[item.seller_id].totalCost += item.price * item.quantity;
+      return acc;
+    }, {});
+  }, [items])
 
   useEffect(() => { fetchCart() }, [])
 
@@ -51,13 +57,15 @@ export default function Cart() {
   }
 
   // ── Checkout ──────────────────────────────────────────────────────────────
-  const handleCheckout = async () => {
-    if (items.length === 0) { toast.error('Your cart is empty'); return }
-    setCheckingOut(true)
+  const handleCheckout = async (seller_id) => {
+    const groupItems = groupedItems[seller_id]?.items;
+    if (!groupItems || groupItems.length === 0) { toast.error('Your cart is empty'); return }
+    
+    setCheckingOut(seller_id)
     try {
-      const { data } = await cartToOrder()
+      const { data } = await cartToOrder(seller_id)
       toast.success('Order created! Redirecting to payment...')
-      setItems([])   // clear cart immediately
+      setItems(prev => prev.filter(item => item.seller_id !== seller_id))   // clear checked out items
       if (data.checkoutUrl) {
         window.location.href = data.checkoutUrl
       } else {
@@ -66,7 +74,7 @@ export default function Cart() {
     } catch (err) {
       toast.error(err.response?.data?.message || 'Checkout failed. Please try again.')
     } finally {
-      setCheckingOut(false)
+      setCheckingOut(null)
     }
   }
 
@@ -124,81 +132,87 @@ export default function Cart() {
               </button>
             </div>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '32px', alignItems: 'start' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '48px' }}>
+              {Object.values(groupedItems).map(group => (
+                <div key={group.seller_id} style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '32px', alignItems: 'start' }}>
+                  
+                  {/* ── Item list ───────────────────────────────────── */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <h3 style={{ fontSize: '18px', fontWeight: 600, margin: 0, paddingBottom: '12px', borderBottom: '1px solid var(--border)' }}>
+                      Items from Seller {group.seller_id}
+                    </h3>
+                    {group.items.map(item => (
+                      <CartItem
+                        key={item.product_id}
+                        item={item}
+                        onQuantityChange={handleQuantityChange}
+                        onRemove={handleRemove}
+                      />
+                    ))}
+                  </div>
 
-              {/* ── Item list ───────────────────────────────────── */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                {items.map(item => (
-                  <CartItem
-                    key={item.product_id}
-                    item={item}
-                    onQuantityChange={handleQuantityChange}
-                    onRemove={handleRemove}
-                  />
-                ))}
-              </div>
+                  {/* ── Order summary sidebar ────────────────────────── */}
+                  <div className="checkout-summary" style={{ position: 'sticky', top: '96px' }}>
+                    <div className="checkout-summary-title">Order Summary (Seller {group.seller_id})</div>
 
-              {/* ── Order summary sidebar ────────────────────────── */}
-              <div className="checkout-summary" style={{ position: 'sticky', top: '96px' }}>
-                <div className="checkout-summary-title">Order Summary</div>
+                    <div className="checkout-row">
+                      <span>Subtotal ({group.items.length} item{group.items.length !== 1 ? 's' : ''})</span>
+                      <span>{formatPrice(group.totalCost)}</span>
+                    </div>
+                    <div className="checkout-row">
+                      <span>Shipping</span>
+                      <span style={{ color: 'var(--success)' }}>Free</span>
+                    </div>
+                    <div className="checkout-row">
+                      <span>Taxes</span>
+                      <span>Included</span>
+                    </div>
 
-                <div className="checkout-row">
-                  <span>Subtotal ({items.length} item{items.length !== 1 ? 's' : ''})</span>
-                  <span>{formatPrice(totalCost)}</span>
-                </div>
-                <div className="checkout-row">
-                  <span>Shipping</span>
-                  <span style={{ color: 'var(--success)' }}>Free</span>
-                </div>
-                <div className="checkout-row">
-                  <span>Taxes</span>
-                  <span>Included</span>
-                </div>
-
-                <div className="checkout-total">
-                  <span>Total</span>
-                  <span style={{
-                    color: 'var(--accent-light)', fontSize: '22px', fontWeight: 800,
-                    transition: 'all 0.15s ease',
-                  }}>
-                    {formatPrice(totalCost)}
-                  </span>
-                </div>
-
-                <button
-                  className="btn btn-primary"
-                  onClick={handleCheckout}
-                  disabled={checkingOut}
-                  style={{ width: '100%', padding: '14px', marginTop: '20px', fontSize: '15px' }}
-                  id="checkout-btn"
-                >
-                  {checkingOut ? (
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div className="checkout-total">
+                      <span>Total</span>
                       <span style={{
-                        width: 16, height: 16,
-                        border: '2px solid rgba(255,255,255,0.3)',
-                        borderTopColor: 'white', borderRadius: '50%',
-                        animation: 'spin 0.6s linear infinite',
-                      }} />
-                      Processing...
-                    </span>
-                  ) : (
-                    <>
-                      <CreditCard size={16} />
-                      Proceed to Payment
-                      <ExternalLink size={13} />
-                    </>
-                  )}
-                </button>
+                        color: 'var(--accent-light)', fontSize: '22px', fontWeight: 800,
+                        transition: 'all 0.15s ease',
+                      }}>
+                        {formatPrice(group.totalCost)}
+                      </span>
+                    </div>
 
-                <div style={{
-                  marginTop: '16px', fontSize: '11px', color: 'var(--text-muted)',
-                  textAlign: 'center', lineHeight: 1.6,
-                }}>
-                  🔒 Secured by Stripe. Stock is reserved atomically before payment.
+                    <button
+                      className="btn btn-primary"
+                      onClick={() => handleCheckout(group.seller_id)}
+                      disabled={checkingOut === group.seller_id}
+                      style={{ width: '100%', padding: '14px', marginTop: '20px', fontSize: '15px' }}
+                      id={`checkout-btn-${group.seller_id}`}
+                    >
+                      {checkingOut === group.seller_id ? (
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{
+                            width: 16, height: 16,
+                            border: '2px solid rgba(255,255,255,0.3)',
+                            borderTopColor: 'white', borderRadius: '50%',
+                            animation: 'spin 0.6s linear infinite',
+                          }} />
+                          Processing...
+                        </span>
+                      ) : (
+                        <>
+                          <CreditCard size={16} />
+                          Proceed to Payment
+                          <ExternalLink size={13} />
+                        </>
+                      )}
+                    </button>
+
+                    <div style={{
+                      marginTop: '16px', fontSize: '11px', color: 'var(--text-muted)',
+                      textAlign: 'center', lineHeight: 1.6,
+                    }}>
+                      🔒 Secured by Stripe. Stock is reserved atomically before payment.
+                    </div>
+                  </div>
                 </div>
-              </div>
-
+              ))}
             </div>
           )}
         </div>
