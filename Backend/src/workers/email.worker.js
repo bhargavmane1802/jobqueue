@@ -2,6 +2,7 @@ import { Worker } from "bullmq";
 import { redis } from "../utils/redis.js";
 import { deadQueue } from "../queues/dead.queue.js";
 import { google } from "googleapis"
+import { trace } from "../log/trace.js";
 const oauth2Client = new google.auth.OAuth2(
         process.env.GOOGLE_CLIENT_ID,
         process.env.GOOGLE_CLIENT_SECRET
@@ -30,7 +31,7 @@ const sendEmail = async (g_email) => {
       raw: encodedMessage
     }
   });
-
+  
   console.log("Email sent");
 } catch (error) {
   console.error(

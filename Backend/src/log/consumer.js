@@ -28,16 +28,18 @@ async function main() {
                 message.value.toString()
             );
 
-            console.log("Received log:", log);
+            console.log("Received log:");
 
             await pool.query(
                 `
-                INSERT INTO logs (type, message)
-                VALUES ($1, $2)
+                INSERT INTO logs (id,type, message,completed_at)
+                VALUES ($1, $2,$3,$4)
                 `,
                 [
+                    log.id,
                     log.type,
-                    log.message
+                    log.message,
+                    log.time
                 ]
             );
 

@@ -29,10 +29,10 @@ app.use("/auth/buyer/order",order_router);
 app.use('/auth/buyer/cart',cartRouter);
 app.use("/auth/seller/",sellerRouter);
 
-app.get('/logs', async (req, res, next) => {
+app.get('/logs/all', async (req, res, next) => {
 
     try {
-        const result = await query('SELECT * FROM logs');
+        const result = await query('SELECT id ,type,message FROM logs order by completed_at asc');
         return res.status(200).json({
             logs: result.rows
         });
@@ -44,6 +44,58 @@ app.get('/logs', async (req, res, next) => {
             message: "Failed to fetch logs"
         });
     }
+});
+app.get("/logs/single/:paymentId", async (req, res, next) => {
+  const { paymentId } = req.params;
+  try {
+    const { rows } = await query(
+      "SELECT order_id FROM payments WHERE id = $1",
+      [paymentId]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({
+        message: "Payment not found"
+      });
+    }
+    const orderId = rows[0].order_id;
+    const result = await query(
+      `
+      SELECT id,type, message
+      FROM logs
+      WHERE (id = $1 AND (type = $2 or type=$5))
+         OR (id = $3 AND (type = $4 or type=$5))
+      ORDER BY completed_at ASC
+      `,
+      [orderId, "order", paymentId, "payment","inventory"]
+    );
+    const arr1= result.rows.filter((ele)=>{
+      return ele.type=='order'
+    }).map((e)=>{return e.message})
+    const arr2= result.rows.filter((ele)=>{
+      return ele.type=='payment'
+    }).map((e)=>{return e.message});
+    const arr3= result.rows.filter((ele)=>{
+      return (ele.type=='inventory')
+    }).map((e)=>{return e.message});
+    const arr4= result.rows.map((e)=>{return e.message});
+    
+
+    return res.status(200).json({
+      orderId,
+      order: arr1,
+      paymentId,
+      payment:arr2,
+      inventory:arr3,
+      timeline:arr4
+    });
+  } catch (err) {
+    console.log("LOG ERROR:", err);
+
+    return res.status(500).json({
+      message: "Failed to fetch logs"
+    });
+  }
 });
 
 app.get('/health/db', async (req, res) => {
