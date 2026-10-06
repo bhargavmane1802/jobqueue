@@ -10,14 +10,19 @@ import { query } from "../config/database.js";
 import { shipmentQueue } from "../queues/shipment.queue.js";
 import { refundService } from "../services/payment.service.js";
 import Stripe from "stripe";
+import { trace } from "../log/trace.js";
 const stripe = new Stripe(process.env.STRIPE);
 
 const payment_worker=new Worker("paymentQueue",async(job)=>{
     console.log('jobname:',job.name);
     if(job.name=='paymentSuccess'){
         try{const {userEmail,orderId ,paymentId,userId,stripeSessionId,stripePaymentIntentId}=job.data;
-        if(!userEmail || !orderId || !paymentId ||!userId || !stripeSessionId|| !stripePaymentIntentId) throw new Error(`Missing data`);
+        trace.log("payment",paymentId,"recived and verified payment webhook ",new Date());
+        if(!userEmail || !orderId || !paymentId ||!userId || !stripeSessionId|| !stripePaymentIntentId) {
+            trace.log("payment",paymentId,"web hook is missing data ",new Date());
+            throw new Error(`Missing data`);}
         await updatePaymentStatus(paymentId,stripePaymentIntentId); //set payment status from pending to paid  and insert stripePaymentIntentId
+        trace.log("payment",paymentId,"updated payment status from pending to paid and inserted stripePaymentIntentId",new Date());
         await inventoryQueue.add('updateInventory',{orderId,userEmail},{
               attempts: 5, // total attempts (1 initial + 4 retries)
               backoff: {
@@ -27,6 +32,7 @@ const payment_worker=new Worker("paymentQueue",async(job)=>{
               removeOnComplete: true,
               removeOnFail: false,
             }); // exhaust the reserved stocks by the order 
+         trace.log("payment",paymentId,`added to inventory queue to updateInventory `,new Date());
         await shipmentQueue.add('createShipment',{orderId},{
               attempts: 5, // total attempts (1 initial + 4 retries)
               backoff: {
@@ -36,6 +42,7 @@ const payment_worker=new Worker("paymentQueue",async(job)=>{
               removeOnComplete: true,
               removeOnFail: false,
         }); // create a shipment and make the order status to shipment once the shipment is created 
+        trace.log("payment",paymentId,`added to shipment queue `,new Date());
         return {message:true};}
         catch(err){
             if(err.message =="Missing data"){
@@ -58,6 +65,7 @@ const payment_worker=new Worker("paymentQueue",async(job)=>{
             const { paymentId, id: orderId } = job.data;
 
             if (!paymentId || !orderId) {
+                
             throw new Error('Missing data');
             }
 
@@ -69,6 +77,7 @@ const payment_worker=new Worker("paymentQueue",async(job)=>{
             const payment = rows[0];
 
             if (!payment) {
+            trace.log("payment",paymentId,"Payment not found in refundPayment event ",new Date());
             throw new Error('Payment not found');
             }
             // Idempotency:
@@ -86,8 +95,8 @@ const payment_worker=new Worker("paymentQueue",async(job)=>{
 
             // Call Stripe
             const refund = await refundService(payment);
-
             if (!refund || refund.status !== 'succeeded') {
+            trace.log("payment",paymentId,"Stripe refund request failed in refundPayment event ",new Date());
             throw new Error('Stripe refund request failed');
             }
             await query(
@@ -96,6 +105,7 @@ const payment_worker=new Worker("paymentQueue",async(job)=>{
             WHERE id = $2`,
             ['refunding', paymentId]
             );
+            trace.log("payment",paymentId,"payment refund initiated status updated to refunding in refundPayment event ",new Date());
             return {
             success: 'refund initiated',
             paymentId,
@@ -112,7 +122,6 @@ const payment_worker=new Worker("paymentQueue",async(job)=>{
 
             return { success: 'failed' };
             }
-
             // Throwing causes BullMQ to retry the job.
             throw err;
         }
@@ -124,20 +133,20 @@ const payment_worker=new Worker("paymentQueue",async(job)=>{
             const {id,paymentId}=job.data;
             const{rows}=await query('select * from payments where id=$1',[paymentId]);
             const payment=rows[0];
-            
             if (!payment) {
+                trace.log("payment",paymentId,`expire check call  `,new Date());
                 return;
             }
-            if(!(payment.status==='pending'))return ;
-
+            if(!(payment.status==='pending')){
+                return ;}
+            trace.log("payment",paymentId,`Payment is still in pending state`,new Date());
             const session= await stripe.checkout.sessions.retrieve(id);
-            console.log(session.status);
-            console.log(session.payment_status);
             const pid=await updatestatuscancel(session.metadata.orderId);//return a paymentid
             if(pid===-1){
                 return ;
             }
-            await updatePaymentStatustToCancelled(pid);
+            await updatePaymentStatustToCancelled(pid);// makes the payment status cancelled but need to change it to expired
+            trace.log("payment",paymentId,`payment status updated to expired `,new Date());
             await inventoryQueue.add('cancelPendingOrder',{email:session.metadata.userEmail,orderId:session.metadata.orderId},{
                 attempts: 5, // total attempts (1 initial + 4 retries)
                 backoff: {
@@ -147,6 +156,7 @@ const payment_worker=new Worker("paymentQueue",async(job)=>{
                 removeOnComplete: true,
                 removeOnFail: false,
                 }); //updates order staus to cancelled and release reserved stocks
+            trace.log("payment",paymentId,`added to inventory queue for cancle pending orders from inventory`,new Date()); 
             return ;
         } catch (err) {
             throw err;
@@ -160,13 +170,13 @@ const payment_worker=new Worker("paymentQueue",async(job)=>{
 
 
 payment_worker.on("completed",async(job,result)=>{
-    if(job.name=='paymentSuccess'){
-        const {orderId ,userEmail}=job.data;
-        console.log('added to inventory and shipment queue')
+const {id,paymentId}=job.data;    
+if(job.name=='paymentSuccess'){
+         trace.log("payment",paymentId,`paymentSuccess completed `,new Date());
 
     }
     if(job.name=='refundPayment'){
-        console.log(result);
+         trace.log("payment",paymentId,`refundPayment completed `,new Date()); 
         return;
     }
 });

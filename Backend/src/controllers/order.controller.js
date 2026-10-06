@@ -1,4 +1,5 @@
 import { query } from "../config/database.js";
+import { trace } from "../log/trace.js";
 import { deadQueue } from "../queues/dead.queue.js";
 import { inventoryQueue } from "../queues/inventory.queue.js";
 import { paymentQueue } from "../queues/payment.queue.js";
@@ -177,7 +178,9 @@ const cancelOrder=async(req,res,next)=>{
             RETURNING p.id AS payment_id;` ,
             ['cancelling',orderId,id,'shipment','paid']
         );
+
         if(order.rows.length==0)return res.status(404).json({message:'Invalid request  q'});
+        trace.log("order",orderId,"order cancelling request , order status updated to cancelling",new Date());
         const paymentId=order.rows[0].payment_id;
         // const payment= await query('update payments set status=$1 where id=$2 and status=$3 returning id',['refunding',order.rows[0].payment_id,'paid']);
         const jobOptions={
@@ -192,6 +195,7 @@ const cancelOrder=async(req,res,next)=>{
         const results =await Promise.allSettled([paymentQueue.add('refundPayment',{paymentId,id},jobOptions),
          inventoryQueue.add('cancelOrder',{orderId,email},jobOptions,),// should be idempotent
          shipmentQueue.add('cancelShipment',{orderId},jobOptions)]); // should be idempotent
+         trace.log("order",orderId,"jobs added to paymentQueue,inventoryQueue,shipmentQueue",new Date());
          const queueNames = [
             'refundPayment',
             'cancelOrder',
@@ -207,6 +211,11 @@ const cancelOrder=async(req,res,next)=>{
           .filter(job => job.status === 'rejected');
 
         if (failedJobs.length > 0) {
+          trace.log("order",orderId,JSON.stringify({
+            orderId,
+            customerId: id,
+            failedJobs,
+          }),new Date());
           await deadQueue.add('cancelOrder', {
             orderId,
             customerId: id,

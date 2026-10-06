@@ -5,6 +5,7 @@ import { createItems } from "../models/order.model.js";
 import { createPayment, updatePaymentSessionId } from "../models/payment.model.js";
 import { payment } from "../services/payment.service.js";
 import { paymentQueue } from "../queues/payment.queue.js";
+import { trace } from "../log/trace.js";
 
 
 
@@ -114,11 +115,17 @@ export const createOrder = async (req, res, next) => {
     const cost=inventory.reduce((sum,row)=>{
       return sum+=Number(row.cost);
     },0);
-    const orderId = await createItems(id,cost,inventory,client,seller_id); //insert in order table and order_items order status payment 
+    const orderId = await createItems(id,cost,inventory,client,seller_id); //insert in order table and order_items order status payment
+    trace.log("inventory",orderId," stocks reserved for all the products  ",new Date()); 
+    trace.log("order",orderId,"order and orderItems entry created in table wiht order status Payment",new Date());
     const paymentId =await createPayment(orderId,cost,client);// created payment with status pending
+    trace.log("payment",paymentId,"payment entry created in table with status pending",new Date());
     const session =await payment(inventory,orderId,email,id,paymentId); //created a stripe session
-    await updatePaymentSessionId(paymentId,client,session.id)
+    trace.log("payment",paymentId,"stripe session created ",new Date());
+    await updatePaymentSessionId(paymentId,client,session.id);
+    trace.log("payment",paymentId,"added stripe session id to payment entry",new Date());
     await query('delete from cart_items where buyer_id=$1 and seller_id=$2 ',[id,seller_id]);
+    trace.log("order",orderId,"cart deleted",new Date());
     await client.query('commit');
     transactionStarted = false;
     await paymentQueue.add('PaymentExpireCheck',{
@@ -137,6 +144,7 @@ export const createOrder = async (req, res, next) => {
                 removeOnFail: false,
             }
         )
+        trace.log("payment",paymentId,"added PaymentExpireCheck to the payment queue",new Date());
     return res.status(201).json({
       orderId,
       paymentId,

@@ -4,11 +4,14 @@ import { query,pool } from "../config/database.js";
 import { updateInventoryOrder } from "../services/inventory.service.js";
 import { deadQueue } from "../queues/dead.queue.js";
 import { emailQueue } from "../queues/email.queue.js";
+import { trace } from "../log/trace.js";
 const inventoryWorker= new Worker('inventoryQueue',async(job)=>{
    if(job.name=='updateInventory'){
    const {orderId,userEmail}=job.data;
+   trace.log("inventory",orderId,`updateInventory event for ${orderId}`,new Date());
    const products=await updateInventoryOrder(orderId);// delete the reserved stocks exuivallent to the order quantity per product
-   await emailQueue.add("orderCreated",{userEmail,products});
+   trace.log("inventory",orderId,`delete the reserved stocks equivalent to the order quantity per product`,new Date());
+   // await emailQueue.add("orderCreated",{userEmail,products});// wait till u purchase a domain
    return true;}
    if (job.name === 'cancelOrder') {
       const client = await pool.connect();
@@ -28,6 +31,8 @@ const inventoryWorker= new Worker('inventoryQueue',async(job)=>{
 // agar update huaa hi nahi toh revert kyu kerna
          if (result.rowCount === 0) {
             client.query('COMMIT');
+            trace.log("inventory",orderId,`${orderId} already processed inventory update`,new Date());
+
             return true; // already processed
          }
 
@@ -44,12 +49,14 @@ const inventoryWorker= new Worker('inventoryQueue',async(job)=>{
             `,
             [orderId]
          );
-
+         trace.log("inventory",orderId,`inventory reverted back for ${orderId}`,new Date());
+         trace.log("inventory",orderId,`order status updated to cancelled  `,new Date());
          await client.query('COMMIT');
          await emailQueue.add('orderCancelMail',{email,orderId,products:rows});
          return true;
       } catch (err) {
          await query('ROLLBACK');
+         err.fun_name="cancle order ->inventory work";
          throw err;
       }
       finally{
@@ -73,6 +80,7 @@ const inventoryWorker= new Worker('inventoryQueue',async(job)=>{
 
          if (result.rowCount === 0) {
             await query('ROLLBACK');
+            trace.log("inventory",orderId,`${orderId} already processed inventory update`,new Date());
             return true; // already processed
          }
 
@@ -88,9 +96,9 @@ const inventoryWorker= new Worker('inventoryQueue',async(job)=>{
             `,
             [orderId]
          );
-
+         trace.log("inventory",orderId,`inventory reverted back for ${orderId}`,new Date());
+         trace.log("inventory",orderId,`order status updated to cancelled  `,new Date());
          await query('COMMIT');
-         console.log(rows.length ,'product reverted of pending order');
          await emailQueue.add('orderCancelMail',{email,orderId,products:rows});
          return true;
       } catch (err) {
@@ -101,10 +109,16 @@ const inventoryWorker= new Worker('inventoryQueue',async(job)=>{
 },{connection:redis});
 
 inventoryWorker.on("completed" ,(job,result)=>{
-   console.log("inventory updated :",result);
+   const {orderId}=job.data;
+   if(job.name=="updateInventory")trace.log("inventory",orderId,`inventory updated event completed in inventory worker`,new Date());
+   if(job.name=="cancelOrder")trace.log("inventory",orderId,` cancelOrder event completed in inventory worker`,new Date());
+   if(job.name=="cancelPendingOrder")trace.log("inventory",orderId,` cancelPendingOrder event completed in inventory worker`,new Date());
+   console.log("inventory updated :");
 })
 inventoryWorker.on("failed",async(job, err)=>{
+   const {orderId}=job.data;
    console.log(`attempt ${job.attemptsMade} of ${job.opts.attempts} failed`,err);
+   trace.log("inventory",orderId,`attempt ${job.attemptsMade} of ${job.opts.attempts} failed for ${job.name}`,new Date());  
    if(job.attemptsMade==job.opts.attempts)await deadQueue.add('failedInventoryUpdate',{name:job.name,data:job.data});
 })
 
